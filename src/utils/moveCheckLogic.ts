@@ -2,7 +2,7 @@ export const isColumnOfFour = (
   newBoard: string[],
   boardSize: number,
   formulaForColumnOfFour: number
-) => {
+): number[] => {
   for (let i: number = 0; i <= formulaForColumnOfFour; i++) {
     const columnOfFour: number[] = [
       i,
@@ -19,17 +19,17 @@ export const isColumnOfFour = (
         (square: number) => newBoard[square] === decidedColor && !isBlank
       )
     ) {
-      columnOfFour.forEach((square: number) => (newBoard[square] = ""));
-      return true;
+      return columnOfFour;
     }
   }
+  return [];
 };
 
 export const checkForRowOfFour = (
   newBoard: String[],
   boardSize: number,
   invalidMovesForColumnOfFour: number[]
-) => {
+): number[] => {
   for (let i = 0; i < boardSize * boardSize; i++) {
     const rowOfFour = [i, i + 1, i + 2, i + 3];
     const decidedColor = newBoard[i];
@@ -40,17 +40,17 @@ export const checkForRowOfFour = (
     if (
       rowOfFour.every((square) => newBoard[square] === decidedColor && !isBlank)
     ) {
-      rowOfFour.forEach((square) => (newBoard[square] = ""));
-      return true;
+      return rowOfFour;
     }
   }
+  return [];
 };
 
 export const checkForColumnOfThree = (
   newBoard: String[],
   boardSize: number,
   formulaForColumnOfThree: number
-) => {
+): number[] => {
   for (let i = 0; i <= formulaForColumnOfThree; i++) {
     const columnOfThree = [i, i + boardSize, i + boardSize * 2];
     const decidedColor = newBoard[i];
@@ -61,17 +61,17 @@ export const checkForColumnOfThree = (
         (square) => newBoard[square] === decidedColor && !isBlank
       )
     ) {
-      columnOfThree.forEach((square) => (newBoard[square] = ""));
-      return true;
+      return columnOfThree;
     }
   }
+  return [];
 };
 
 export const checkForRowOfThree = (
   newBoard: string[],
   boardSize: number,
   invalidMovesForColumnOfThree: number[]
-) => {
+): number[] => {
   for (let i = 0; i < boardSize * boardSize; i++) {
     const rowOfThree = [i, i + 1, i + 2];
     const decidedColor = newBoard[i];
@@ -85,8 +85,8 @@ export const checkForRowOfThree = (
         (square) => newBoard[square] === decidedColor && !isBlank
       )
     ) {
-      rowOfThree.forEach((square) => (newBoard[square] = ""));
-      return true;
+      return rowOfThree;
     }
   }
+  return [];
 };

@@ -1,5 +1,6 @@
 import { dragDrop, dragEnd, dragStart } from "../store";
 import { useAppDispatch } from "../store/hooks";
+import { medImages } from "../utils/candyData";
 
 function Tile({ candy, candyId }: { candy: string; candyId: number }) {
   const dispatch = useAppDispatch();
@@ -13,8 +14,8 @@ function Tile({ candy, candyId }: { candy: string; candyId: number }) {
     >
       {candy && (
         <img
-          src={candy}
-          alt=""
+          src={medImages[candy]}
+          alt={candy}
           className="h-20 w-20"
           draggable={true}
           onDragStart={(e) => dispatch(dragStart(e.target))}

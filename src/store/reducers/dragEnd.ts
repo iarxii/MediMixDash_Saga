@@ -17,6 +17,7 @@ export const dragEndReducer = (
     boardSize: number;
     squareBeingReplaced: Element | undefined;
     squareBeingDragged: Element | undefined;
+    dispensed: { [med: string]: number };
   }>
 ) => {
   const newBoard = [...state.board];
@@ -28,12 +29,8 @@ export const dragEndReducer = (
     squareBeingReplaced?.getAttribute("candy-id") as string
   );
 
-  newBoard[squareBeingReplacedId] = squareBeingDragged?.getAttribute(
-    "src"
-  ) as string;
-  newBoard[squareBeingDraggedId] = squareBeingReplaced?.getAttribute(
-    "src"
-  ) as string;
+  newBoard[squareBeingReplacedId] = state.board[squareBeingDraggedId];
+  newBoard[squareBeingDraggedId] = state.board[squareBeingReplacedId];
 
   const validMoves: number[] = [
     squareBeingDraggedId - 1,
@@ -44,44 +41,51 @@ export const dragEndReducer = (
 
   const validMove: boolean = validMoves.includes(squareBeingReplacedId);
 
-  const isAColumnOfFour: boolean | undefined = isColumnOfFour(
+  const isAColumnOfFour: number[] = isColumnOfFour(
     newBoard,
     boardSize,
     formulaForColumnOfFour(boardSize)
   );
 
-  const isARowOfFour: boolean | undefined = checkForRowOfFour(
+  const isARowOfFour: number[] = checkForRowOfFour(
     newBoard,
     boardSize,
     generateInvalidMoves(boardSize, true)
   );
 
-  const isAColumnOfThree: boolean | undefined = checkForColumnOfThree(
+  const isAColumnOfThree: number[] = checkForColumnOfThree(
     newBoard,
     boardSize,
     formulaForColumnOfThree(boardSize)
   );
 
-  const isARowOfThree: boolean | undefined = checkForRowOfThree(
+  const isARowOfThree: number[] = checkForRowOfThree(
     newBoard,
     boardSize,
     generateInvalidMoves(boardSize)
   );
 
+  const allRemoved = [...isAColumnOfFour, ...isARowOfFour, ...isAColumnOfThree, ...isARowOfThree];
+
   if (
     squareBeingReplacedId &&
     validMove &&
-    (isARowOfThree || isARowOfFour || isAColumnOfFour || isAColumnOfThree)
+    allRemoved.length > 0
   ) {
+    // Count dispensed meds
+    const dispensed: { [med: string]: number } = {};
+    allRemoved.forEach(pos => {
+      const med = state.board[pos];
+      dispensed[med] = (dispensed[med] || 0) + 1;
+    });
+    state.dispensed = dispensed;
+    // Remove
+    allRemoved.forEach(pos => newBoard[pos] = "");
     squareBeingDragged = undefined;
     squareBeingReplaced = undefined;
   } else {
-    newBoard[squareBeingReplacedId] = squareBeingReplaced?.getAttribute(
-      "src"
-    ) as string;
-    newBoard[squareBeingDraggedId] = squareBeingDragged?.getAttribute(
-      "src"
-    ) as string;
+    newBoard[squareBeingReplacedId] = state.board[squareBeingReplacedId];
+    newBoard[squareBeingDraggedId] = state.board[squareBeingDraggedId];
   }
   state.board = newBoard;
 };

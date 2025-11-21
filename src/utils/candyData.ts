@@ -1,17 +1,27 @@
-import candyOne from "../assets/candyOne.png";
-import candyTwo from "../assets/candyTwo.png";
-import candyThree from "../assets/candyThree.png";
-import candyFour from "../assets/candyFour.png";
-import candyFive from "../assets/candyFive.png";
-import candySix from "../assets/candySix.png";
-import candySeven from "../assets/candySeven.png";
+import medOne from "../assets/meds/medOne.png";
+import medTwo from "../assets/meds/medTwo.png";
+import medThree from "../assets/meds/medThree.png";
+import medFour from "../assets/meds/medFour.png";
+import medFive from "../assets/meds/medFive.png";
+import medSix from "../assets/meds/medSix.png";
+import medSeven from "../assets/meds/medSeven.png";
 
-export const candies = [
-  candyOne,
-  candyTwo,
-  candyThree,
-  candyFour,
-  candyFive,
-  candySix,
-  candySeven,
+export const medications = [
+  "Capsulon",
+  "Tablix",
+  "Syrupix",
+  "Pillora",
+  "Injecta",
+  "Gelux",
+  "VitaDose"
 ];
+
+export const medImages: { [key: string]: string } = {
+  Capsulon: medOne,
+  Tablix: medTwo,
+  Syrupix: medSeven,
+  Pillora: medFour,
+  Injecta: medSix,
+  Gelux: medFive,
+  VitaDose: medThree,
+};

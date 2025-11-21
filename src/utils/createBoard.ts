@@ -1,6 +1,6 @@
-import { candies } from "./candyData";
+import { medications } from "./candyData";
 
 export const createBoard = (baordSize: number = 8) =>
   Array(baordSize * baordSize)
     .fill(null)
-    .map(() => candies[Math.floor(Math.random() * candies.length)]);
+    .map(() => medications[Math.floor(Math.random() * medications.length)]);

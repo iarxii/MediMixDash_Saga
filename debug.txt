@@ -1,0 +1,18 @@
+Compiled with problems:X
+
+ERROR in src/App.tsx:71:26
+
+TS2345: Argument of type '({ id: number; name: string; prescription: { Gelux: number; Pillora: number; Injecta: number; Tablix?: undefined; Syrupix?: undefined; VitaDose?: undefined; Capsulon?: undefined; }; dispensed: { Gelux: number; ... 5 more ...; Capsulon?: undefined; }; waitTime: number; maxWaitTime: number; status: "waiting"; } | { .....' is not assignable to parameter of type 'Patient[]'.
+  Type '{ id: number; name: string; prescription: { Gelux: number; Pillora: number; Injecta: number; Tablix?: undefined; Syrupix?: undefined; VitaDose?: undefined; Capsulon?: undefined; }; dispensed: { Gelux: number; ... 5 more ...; Capsulon?: undefined; }; waitTime: number; maxWaitTime: number; status: "waiting"; } | { ......' is not assignable to type 'Patient'.
+    Type '{ id: number; name: string; prescription: { Gelux: number; Pillora: number; Injecta: number; Tablix?: undefined; Syrupix?: undefined; VitaDose?: undefined; Capsulon?: undefined; }; dispensed: { Gelux: number; ... 5 more ...; Capsulon?: undefined; }; waitTime: number; maxWaitTime: number; status: "waiting"; }' is not assignable to type 'Patient'.
+      Types of property 'prescription' are incompatible.
+        Type '{ Gelux: number; Pillora: number; Injecta: number; Tablix?: undefined; Syrupix?: undefined; VitaDose?: undefined; Capsulon?: undefined; }' is not assignable to type '{ [med: string]: number; }'.
+          Property '"Tablix"' is incompatible with index signature.
+            Type 'undefined' is not assignable to type 'number'.
+    69 |       },
+    70 |     ];
+  > 71 |     dispatch(setPatients(initialPatients));
+       |                          ^^^^^^^^^^^^^^^
+    72 |   }, [dispatch, boardSize]);
+    73 |
+    74 |   useEffect(() => {

@@ -1,4 +1,4 @@
-import { candies } from "../../utils/candyData";
+import { medications } from "../../utils/candyData";
 import { formulaForMoveBelow } from "../../utils/formulas";
 import { WritableDraft } from "immer/dist/types/types-external";
 
@@ -22,8 +22,8 @@ export const moveBelowReducer = (
     const isFirstRow = firstRow.includes(i);
 
     if (isFirstRow && newBoard[i] === "") {
-      let randomNumber = Math.floor(Math.random() * candies.length);
-      newBoard[i] = candies[randomNumber];
+      let randomNumber = Math.floor(Math.random() * medications.length);
+      newBoard[i] = medications[randomNumber];
       boardChanges = true;
     }
 

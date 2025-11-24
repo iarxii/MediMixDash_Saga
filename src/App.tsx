@@ -3,7 +3,7 @@ import BackgroundCarousel from "./components/BackgroundCarousel";
 import Board from "./components/Board";
 import Consultant from "./components/Consultant";
 import Patients from "./components/Patients";
-import { moveBelow, updateBoard, resetDispensed, updateTime, assignConsultantOrder, completeConsultantOrder } from "./store";
+import { moveBelow, updateBoard, resetDispensed, updateTime, assignConsultantOrder, completeConsultantOrder, addDashPoints, addComplaint } from "./store";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import { createBoard } from "./utils/createBoard";
 import {
@@ -57,6 +57,24 @@ function App() {
     }, 1000);
     return () => clearInterval(interval);
   }, [dispatch, game.currentTime]);
+
+  // Check for mood state changes and apply penalties
+  useEffect(() => {
+    patients.forEach(patient => {
+      if (patient.moodStatus !== patient.previousMoodStatus) {
+        if (patient.moodStatus === 'complaint lodged') {
+          // 3% deduction for complaint lodged
+          const penalty = Math.floor(game.dashPoints * 0.03);
+          dispatch(addDashPoints(-penalty));
+          dispatch(addComplaint());
+        } else if (patient.moodStatus === 'left') {
+          // 10% deduction for patient leaving
+          const penalty = Math.floor(game.dashPoints * 0.10);
+          dispatch(addDashPoints(-penalty));
+        }
+      }
+    });
+  }, [patients, game.dashPoints, dispatch]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {

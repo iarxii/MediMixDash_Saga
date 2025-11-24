@@ -72,9 +72,20 @@ function Patients() {
             <span className="text-sm text-gray-600">Age: {patient.age}</span>
             <span className={`text-sm ${
               patient.moodStatus === 'calm' ? 'text-green-600' :
-              patient.moodStatus === 'impatient' ? 'text-yellow-600' : 'text-red-600'
+              patient.moodStatus === 'impatient' ? 'text-yellow-600' :
+              patient.moodStatus === 'frustrated' ? 'text-orange-600' :
+              patient.moodStatus === 'angry' ? 'text-red-600' :
+              patient.moodStatus === 'complaining' ? 'text-purple-600' :
+              patient.moodStatus === 'complaint lodged' ? 'text-red-800' :
+              'text-gray-600'
             }`}>
-              {patient.moodStatus === 'calm' ? '😊' : patient.moodStatus === 'impatient' ? '😐' : patient.moodStatus === 'frustrated' ? '😟' : patient.moodStatus === 'angry' ? '😠' : patient.moodStatus === 'complaining' ? '😤' : '📞'} {patient.moodStatus}
+              {patient.moodStatus === 'calm' ? '😊' : 
+               patient.moodStatus === 'impatient' ? '😐' : 
+               patient.moodStatus === 'frustrated' ? '😟' : 
+               patient.moodStatus === 'angry' ? '😠' : 
+               patient.moodStatus === 'complaining' ? '😤' : 
+               patient.moodStatus === 'complaint lodged' ? '📞' :
+               '👋'} {patient.moodStatus}
             </span>
           </div>
           <span className={`px-2 py-1 text-xs rounded-full ${patient.status === 'completed' ? 'bg-green-100 text-green-800' : patient.status === 'failed' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
@@ -87,11 +98,20 @@ function Patients() {
       </div>
       <div className="w-full bg-gray-200 rounded-full h-3">
         <div
-          className={`h-3 rounded-full transition-all duration-1000 ${patient.waitTime > 10 ? 'bg-green-500' : patient.waitTime > 5 ? 'bg-yellow-500' : 'bg-red-500'}`}
-          style={{ width: `${(patient.waitTime / patient.maxWaitTime) * 100}%` }}
+          className={`h-3 rounded-full transition-all duration-1000 ${
+            patient.moodStatus === 'calm' ? 'bg-green-500' :
+            patient.moodStatus === 'impatient' ? 'bg-yellow-500' :
+            patient.moodStatus === 'frustrated' ? 'bg-orange-500' :
+            patient.moodStatus === 'angry' ? 'bg-red-500' :
+            patient.moodStatus === 'complaining' ? 'bg-purple-500' :
+            'bg-gray-500'
+          }`}
+          style={{ width: `${patient.status === 'waiting' ? (patient.moodTimer / patient.moodStateDuration) * 100 : 100}%` }}
         ></div>
       </div>
-      <div className="text-center mt-2 text-sm font-semibold">{patient.waitTime}s left</div>
+      <div className="text-center mt-2 text-sm font-semibold">
+        {patient.status === 'waiting' ? `${patient.moodTimer}s in ${patient.moodStatus}` : patient.status}
+      </div>
     </div>
   );
 

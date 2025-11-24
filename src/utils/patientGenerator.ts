@@ -11,9 +11,12 @@ export interface Patient {
   status: 'waiting' | 'dispensing' | 'completed' | 'failed';
   ticketNumber: number;
   lineType: 'Express' | 'Normal' | 'Priority' | 'Emergency';
-  moodStatus: 'calm' | 'impatient' | 'frustrated' | 'angry' | 'complaining' | 'complaint lodged';
+  moodStatus: 'calm' | 'impatient' | 'frustrated' | 'angry' | 'complaining' | 'complaint lodged' | 'left';
   pinned: boolean;
   assignedConsultant: number | null;
+  moodTimer: number; // Timer for current mood state
+  moodStateDuration: number; // Duration for current mood state
+  previousMoodStatus: 'calm' | 'impatient' | 'frustrated' | 'angry' | 'complaining' | 'complaint lodged' | 'left';
 }
 
 export function generatePatient(currentTime: number = 7 * 60 * 60): Patient {
@@ -71,6 +74,15 @@ export function generatePatient(currentTime: number = 7 * 60 * 60): Patient {
   else if (lineType === 'Priority') maxWaitTime = 15;
   else if (lineType === 'Emergency') maxWaitTime = 10;
 
+  // Set initial mood state and timer
+  const moodDurations = {
+    Emergency: { calm: 5, impatient: 5, frustrated: 3, angry: 2, complaining: 1 },
+    Express: { calm: 15, impatient: 15, frustrated: 10, angry: 5, complaining: 2 },
+    Normal: { calm: 30, impatient: 30, frustrated: 20, angry: 10, complaining: 3 },
+    Priority: { calm: 8, impatient: 7, frustrated: 5, angry: 3, complaining: 1 }
+  };
+
+  const durations = moodDurations[lineType];
   return {
     id: Date.now(),
     name: `${name} ${surname}`,
@@ -84,6 +96,9 @@ export function generatePatient(currentTime: number = 7 * 60 * 60): Patient {
     lineType,
     moodStatus: 'calm',
     pinned: false,
-    assignedConsultant: null
+    assignedConsultant: null,
+    moodTimer: durations.calm,
+    moodStateDuration: durations.calm,
+    previousMoodStatus: 'calm'
   };
 }

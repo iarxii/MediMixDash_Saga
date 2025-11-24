@@ -30,13 +30,20 @@ The `findValidMoves` function identifies all possible swaps that would create va
 - **Failed**: Wait time exceeded without completion
 
 #### Sentiment Progression
-Patients' mood deteriorates based on remaining wait time percentage:
-- 80%+: Calm 😊
-- 60-80%: Impatient 😐
-- 40-60%: Frustrated 😟
-- 20-40%: Angry 😠
-- 10-20%: Complaining 😤
-- <10%: Complaint Lodged 📞
+Patients' mood states have independent timers that restart when entering each state:
+- **Calm 😊**: Initial state with dedicated timer
+- **Impatient 😐**: Transitions after calm timer expires
+- **Frustrated 😟**: Transitions after impatient timer expires  
+- **Angry 😠**: Transitions after frustrated timer expires
+- **Complaining 😤**: Transitions after angry timer expires
+- **Complaint Lodged 📞**: Final state (3% score deduction)
+- **Left 👋**: 3% chance patient leaves instead (10% score deduction)
+
+Each mood state has its own duration based on line type:
+- **Emergency**: Calm(5s) → Impatient(5s) → Frustrated(3s) → Angry(2s) → Complaining(1s)
+- **Express**: Calm(15s) → Impatient(15s) → Frustrated(10s) → Angry(5s) → Complaining(2s)
+- **Normal**: Calm(30s) → Impatient(30s) → Frustrated(20s) → Angry(10s) → Complaining(3s)
+- **Priority**: Calm(8s) → Impatient(7s) → Frustrated(5s) → Angry(3s) → Complaining(1s)
 
 #### Queue Management
 - **Emergency Line**: 10 seconds max wait (highest priority)
@@ -78,8 +85,9 @@ Patients' mood deteriorates based on remaining wait time percentage:
 - **Failure Penalty**: -30 points
 
 #### Sentiment Penalties
-- Deductions applied based on patient mood at various stages
-- Major deduction for lodged complaints
+- **Complaint Lodged**: 3% deduction from current dash points
+- **Patient Leaves**: 10% deduction from current dash points (3% chance when complaining timer expires)
+- Penalties applied immediately when mood state changes
 
 #### Combo System
 - Bonus points for dispensing orders with 5+ seconds remaining
@@ -128,9 +136,22 @@ generatePatient(currentTime)
 
 ### Patient Sentiment Calculation
 ```typescript
-const timeRatio = waitTime / maxWaitTime;
-if (timeRatio > 0.8) mood = 'calm';
-// ... progressive worsening
+// Each mood state has independent timer that resets on transition
+updateMoodTimers(patient) {
+  patient.moodTimer--;
+  if (patient.moodTimer <= 0 && patient.status === 'waiting') {
+    // Transition to next mood state with new timer duration
+    transitionToNextMoodState(patient);
+  }
+}
+
+// Mood state durations by line type
+const moodDurations = {
+  Emergency: { calm: 5, impatient: 5, frustrated: 3, angry: 2, complaining: 1 },
+  Express: { calm: 15, impatient: 15, frustrated: 10, angry: 5, complaining: 2 },
+  Normal: { calm: 30, impatient: 30, frustrated: 20, angry: 10, complaining: 3 },
+  Priority: { calm: 8, impatient: 7, frustrated: 5, angry: 3, complaining: 1 }
+};
 ```
 
 ### Consultant Shift Logic

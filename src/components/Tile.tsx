@@ -7,6 +7,7 @@ function Tile({ candy, candyId }: { candy: string; candyId: number }) {
   const dispatch = useAppDispatch();
   const [isPulsing, setIsPulsing] = useState(false);
   const boardSize = useAppSelector(({ candyCrush: { boardSize } }) => boardSize);
+  const highlighted = useAppSelector(({ candyCrush: { highlighted } }) => highlighted);
   const cols = boardSize;
   const row = Math.floor(candyId / cols);
   const col = candyId % cols;
@@ -19,7 +20,7 @@ function Tile({ candy, candyId }: { candy: string; candyId: number }) {
 
   return (
     <div
-      className="h-24 w-24 flex justify-center items-center m-0.5 rounded-lg select-none tile-wave-bounce"
+      className={`h-24 w-24 flex justify-center items-center m-0.5 rounded-lg select-none tile-wave-bounce ${highlighted.includes(candyId) ? 'tile-consultant-pulse' : ''}`}
       style={{
         boxShadow: "inset 5px 5px 15px #889ffaff,inset -5px -5px 15px #aaaab7bb, 0 4px 8px rgba(0,0,0,0.15)",
         animationDelay: `${delay}s`,

@@ -29,6 +29,11 @@ function Patients() {
     if (!a.pinned && b.pinned) return 1;
     return b.id - a.id;
   });
+  const emergencyPatients = sortedPatients.filter(p => p.lineType === 'Emergency').sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return b.id - a.id;
+  });
 
   const renderPrescription = (prescription: { [med: string]: number }, dispensed: { [med: string]: number }) => {
     return Object.entries(prescription).map(([med, req]) => {
@@ -92,6 +97,18 @@ function Patients() {
 
   return (
     <div className="space-y-6">
+      {/* Emergency Line */}
+      <div className="bg-red-200 bg-opacity-70 p-3 rounded-lg border-2 border-red-400">
+        <h3 className="text-lg font-bold mb-2 text-red-800">🚨 Emergency Line</h3>
+        <div className="overflow-x-auto pb-2 custom-scrollbar">
+          <div className="flex space-x-4">
+            {emergencyPatients.length > 0 ? emergencyPatients.map(renderPatientCard) : (
+              <div className="text-gray-500 italic">No emergency patients</div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Express Line */}
       <div className="bg-green-100 bg-opacity-50 p-3 rounded-lg">
         <h3 className="text-lg font-bold mb-2 text-green-700">Express Line</h3>

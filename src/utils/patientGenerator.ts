@@ -10,12 +10,13 @@ export interface Patient {
   maxWaitTime: number;
   status: 'waiting' | 'dispensing' | 'completed' | 'failed';
   ticketNumber: number;
-  lineType: 'Express' | 'Normal' | 'Priority';
+  lineType: 'Express' | 'Normal' | 'Priority' | 'Emergency';
   moodStatus: 'calm' | 'impatient' | 'frustrated' | 'angry' | 'complaining' | 'complaint lodged';
   pinned: boolean;
+  assignedConsultant: number | null;
 }
 
-export function generatePatient(): Patient {
+export function generatePatient(currentTime: number = 7 * 60 * 60): Patient {
   const namePool = Math.random() > 0.5 ? westernNames : saNames;
   const surnamePool = Math.random() > 0.5 ? westernSurnames : saSurnames;
 
@@ -33,16 +34,42 @@ export function generatePatient(): Patient {
     prescription[med] = Math.floor(Math.random() * 5) + 1;
   }
 
-  // Determine line type
-  let lineType: 'Express' | 'Normal' | 'Priority' = 'Normal';
-  if (age >= 65) lineType = 'Priority';
-  else if (Math.random() < 0.1) lineType = 'Express'; // 10% chance for express
-  else if (Math.random() < 0.2) lineType = 'Priority'; // Additional 20% for priority (pregnant/emergency)
+  // Determine line type based on time and patient characteristics
+  let lineType: 'Express' | 'Normal' | 'Priority' | 'Emergency' = 'Normal';
+
+  // Convert currentTime to hours for easier logic
+  const currentHour = Math.floor(currentTime / 3600);
+
+  // Emergency cases - more frequent in later hours (after 6 PM)
+  const emergencyChance = currentHour >= 18 ? 0.15 : 0.05; // 15% after 6PM, 5% before
+  if (Math.random() < emergencyChance) {
+    lineType = 'Emergency';
+  }
+  // Priority for elderly
+  else if (age >= 65) {
+    lineType = 'Priority';
+  }
+  // Express for urgent but not emergency cases
+  else if (Math.random() < 0.1) {
+    lineType = 'Express';
+  }
+  // Additional priority chance
+  else if (Math.random() < 0.15) {
+    lineType = 'Priority';
+  }
+
+  // Adjust probabilities for after-hours (reduce Normal, increase others slightly)
+  if (currentHour < 7 || currentHour >= 17) { // Before 7AM or after 5PM
+    if (lineType === 'Normal' && Math.random() < 0.3) { // 30% chance to upgrade Normal to Express
+      lineType = 'Express';
+    }
+  }
 
   // Set maxWaitTime based on line type
   let maxWaitTime = 60; // Normal
   if (lineType === 'Express') maxWaitTime = 30;
   else if (lineType === 'Priority') maxWaitTime = 15;
+  else if (lineType === 'Emergency') maxWaitTime = 10;
 
   return {
     id: Date.now(),
@@ -56,6 +83,7 @@ export function generatePatient(): Patient {
     ticketNumber: Math.floor(Math.random() * 1000) + 1, // Random ticket number
     lineType,
     moodStatus: 'calm',
-    pinned: false
+    pinned: false,
+    assignedConsultant: null
   };
 }

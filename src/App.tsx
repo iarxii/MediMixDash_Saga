@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 import BackgroundCarousel from "./components/BackgroundCarousel";
 import Board from "./components/Board";
+import Consultant from "./components/Consultant";
 import Patients from "./components/Patients";
-import { moveBelow, updateBoard, resetDispensed } from "./store";
+import { moveBelow, updateBoard, resetDispensed, updateTime, assignConsultantOrder, completeConsultantOrder } from "./store";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import { createBoard } from "./utils/createBoard";
 import {
@@ -16,7 +17,7 @@ import {
   checkForRowOfThree,
   isColumnOfFour,
 } from "./utils/moveCheckLogic";
-import { dispenseMed, setPatients, updateTimers, cleanupPatients, pinPatient, updateTime } from "./store";
+import { dispenseMed, setPatients, updateTimers, cleanupPatients, pinPatient, updatePatient } from "./store";
 import { generatePatient } from "./utils/patientGenerator";
 
 // images
@@ -35,7 +36,7 @@ function App() {
   useEffect(() => {
     dispatch(updateBoard(createBoard(boardSize)));
     // Initialize patients
-    const initialPatients = [generatePatient(), generatePatient(), generatePatient()];
+    const initialPatients = [generatePatient(7 * 60 * 60), generatePatient(7 * 60 * 60), generatePatient(7 * 60 * 60)];
     dispatch(setPatients(initialPatients));
   }, [dispatch, boardSize]);
 
@@ -51,11 +52,11 @@ function App() {
   useEffect(() => {
     const interval = setInterval(() => {
       dispatch(updateTimers());
-      dispatch(cleanupPatients());
+      dispatch(cleanupPatients(game.currentTime));
       dispatch(updateTime());
     }, 1000);
     return () => clearInterval(interval);
-  }, [dispatch]);
+  }, [dispatch, game.currentTime]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -113,36 +114,9 @@ function App() {
               <div className="flex-1 bg-white p-2 rounded shadow overflow-y-auto min-h-[360px]">
                 <h3 className="text-lg font-bold mb-2">Consultants</h3>
                 <div className="space-y-2">
-                  {game.consultants.map((consultant, i) => {
-                    const colors = [
-                      "bg-blue-200",
-                      "bg-green-200",
-                      "bg-yellow-200",
-                      "bg-purple-200",
-                      "bg-pink-200",
-                    ];
-                    return (
-                      <div
-                        key={consultant.id}
-                        className="flex items-center space-x-2 bg-gray-50 p-2 rounded"
-                      >
-                        <div
-                          className={`w-8 h-8 ${colors[i]} rounded-full flex items-center justify-center text-sm font-bold text-gray-700`}
-                        >
-                          {consultant.name[0]}
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-sm font-semibold">
-                            {consultant.name}
-                          </div>
-                          <div className="text-xs text-gray-600">
-                            {consultant.status === 'available' ? '✅' : consultant.status === 'fetching' ? '🔄' : consultant.status === 'busy' ? '🏃‍♂️' : '🚪'} {consultant.status}
-                          </div>
-                          <div className="text-xs text-gray-500">Stamina: {consultant.stamina}%</div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {game.consultants.map((consultant, i) => (
+                    <Consultant key={consultant.id} consultant={consultant} index={i} />
+                  ))}
                 </div>
               </div>
             </div>
@@ -165,7 +139,17 @@ function App() {
                         ? "bg-yellow-100 border-yellow-500"
                         : "bg-blue-100 border-blue-300"
                     }`}
-                    onClick={() => dispatch(pinPatient(patient.id))}
+                    onClick={() => {
+                      if (patient.status === 'waiting') {
+                        // Find available consultant
+                        const availableConsultant = game.consultants.find(c => c.available && c.status === 'available');
+                        if (availableConsultant) {
+                          dispatch(updatePatient({ id: patient.id, updates: { status: 'dispensing', assignedConsultant: availableConsultant.id } }));
+                          dispatch(assignConsultantOrder({ consultantId: availableConsultant.id, patientId: patient.id }));
+                        }
+                      }
+                      dispatch(pinPatient(patient.id));
+                    }}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-lg font-bold text-gray-800">
@@ -216,6 +200,9 @@ function App() {
                       </span>
                       {patient.pinned && (
                         <span className="text-purple-600">📌 Pinned</span>
+                      )}
+                      {patient.assignedConsultant && (
+                        <span className="text-blue-600">👨‍⚕️ {game.consultants.find(c => c.id === patient.assignedConsultant)?.name}</span>
                       )}
                     </div>
                     <div className="mb-2">

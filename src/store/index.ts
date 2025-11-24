@@ -20,12 +20,14 @@ const initialCandyCrushState: {
   squareBeingReplaced: Element | undefined;
   squareBeingDragged: Element | undefined;
   dispensed: { [med: string]: number };
+  highlighted: number[];
 } = {
   board: [],
   boardSize: 8,
   squareBeingDragged: undefined,
   squareBeingReplaced: undefined,
   dispensed: {},
+  highlighted: [],
 };
 
 const candyCrushSlice = createSlice({
@@ -49,6 +51,9 @@ const candyCrushSlice = createSlice({
     resetDispensed: (state) => {
       state.dispensed = {};
     },
+    setHighlighted: (state, action: PayloadAction<number[]>) => {
+      state.highlighted = action.payload;
+    },
   },
 });
 
@@ -69,6 +74,7 @@ const gameSlice = createSlice({
     consultants: [
       { id: 1, name: 'Alice', available: true, stamina: 100, status: 'available', shiftStart: 7 * 60 * 60, shiftEnd: 17 * 60 * 60, currentOrder: null },
       { id: 2, name: 'Bob', available: true, stamina: 100, status: 'available', shiftStart: 7 * 60 * 60, shiftEnd: 17 * 60 * 60, currentOrder: null },
+      { id: 3, name: 'Charlie', available: false, stamina: 80, status: 'closed', shiftStart: 17 * 60 * 60, shiftEnd: 31 * 60 * 60, currentOrder: null }, // Stand-by consultant for night shift (5PM to 7AM next day)
     ] as Consultant[],
     statistics: {
       totalPatients: 0,
@@ -105,14 +111,32 @@ const gameSlice = createSlice({
       state.currentTime += 1;
       // Update consultant statuses based on shift hours
       state.consultants.forEach(consultant => {
-        if (state.currentTime >= consultant.shiftStart && state.currentTime <= consultant.shiftEnd) {
-          if (consultant.status === 'closed') {
-            consultant.status = 'available';
-            consultant.available = true;
+        const isBusinessHours = state.currentTime >= consultant.shiftStart && state.currentTime < consultant.shiftEnd;
+        const isStandBy = consultant.id === 3; // Charlie is stand-by
+        
+        if (isStandBy) {
+          // Stand-by consultant available outside business hours
+          const isOutsideBusinessHours = state.currentTime < state.businessStart || state.currentTime >= state.businessEnd;
+          if (isOutsideBusinessHours) {
+            if (consultant.status === 'closed') {
+              consultant.status = 'available';
+              consultant.available = true;
+            }
+          } else {
+            consultant.status = 'closed';
+            consultant.available = false;
           }
         } else {
-          consultant.status = 'closed';
-          consultant.available = false;
+          // Regular consultants
+          if (isBusinessHours) {
+            if (consultant.status === 'closed') {
+              consultant.status = 'available';
+              consultant.available = true;
+            }
+          } else {
+            consultant.status = 'closed';
+            consultant.available = false;
+          }
         }
       });
       if (state.dashPoints <= 0) {
@@ -197,12 +221,12 @@ const patientsSlice = createSlice({
         patient.pinned = !patient.pinned;
       }
     },
-    cleanupPatients: (state) => {
+    cleanupPatients: (state, action: PayloadAction<number>) => {
       // Remove completed and failed patients
       const activePatients = state.filter(p => p.status === 'waiting' || p.status === 'dispensing');
       // Add new patients to reach 3
       while (activePatients.length < 3) {
-        activePatients.push(generatePatient());
+        activePatients.push(generatePatient(action.payload));
       }
       return activePatients;
     },
@@ -221,7 +245,7 @@ export const store = configureStore({
     }),
 });
 
-export const { updateBoard, moveBelow, dragDrop, dragEnd, dragStart, setDispensed, resetDispensed } =
+export const { updateBoard, moveBelow, dragDrop, dragEnd, dragStart, setDispensed, resetDispensed, setHighlighted } =
   candyCrushSlice.actions;
 
 export const { addDashPoints, addCurrency, updateMorale, addCompliment, addComplaint, decrementShiftTime, updateStatistics, updateTime, assignConsultantOrder, completeConsultantOrder } =

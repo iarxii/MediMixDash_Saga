@@ -7,16 +7,20 @@ function Board() {
     ({ candyCrush: { boardSize } }) => boardSize
   );
   return (
-    <div
-      className="flex flex-wrap rounded-lg"
-      style={{
-        width: `${6.25 * boardSize}rem`,
-      }}
-    >
-      {board.map((candy: string, index: number) => (
-        <Tile candy={candy} key={index} candyId={index} />
-      ))}
+    <div className="med-board">
+      <div
+        className="flex flex-wrap rounded-lg"
+        style={{
+          width: `${6.25 * boardSize}rem`,
+          // width: '80%',
+        }}
+      >
+        {board.map((candy: string, index: number) => (
+          <Tile candy={candy} key={index} candyId={index} />
+        ))}
+      </div>
     </div>
+
   );
 }
 

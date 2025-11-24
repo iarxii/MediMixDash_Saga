@@ -16,17 +16,11 @@ import {
   checkForRowOfThree,
   isColumnOfFour,
 } from "./utils/moveCheckLogic";
-import { dispenseMed, setPatients, updateTimers } from "./store";
+import { dispenseMed, setPatients, updateTimers, cleanupPatients, pinPatient } from "./store";
+import { generatePatient } from "./utils/patientGenerator";
 
-interface Patient {
-  id: number;
-  name: string;
-  prescription: { [med: string]: number };
-  dispensed: { [med: string]: number };
-  waitTime: number;
-  maxWaitTime: number;
-  status: 'waiting' | 'dispensing' | 'completed' | 'failed';
-}
+// images
+import welcomeBanner from './assets/welcome-banner.png';
 
 function App() {
   const dispatch = useAppDispatch();
@@ -35,39 +29,14 @@ function App() {
   const boardSize = useAppSelector(
     ({ candyCrush: { boardSize } }) => boardSize
   );
+  const patients = useAppSelector((state) => state.patients);
+  const shiftTime = useAppSelector((state) => state.game.shiftTime);
+  const game = useAppSelector((state) => state.game);
 
   useEffect(() => {
     dispatch(updateBoard(createBoard(boardSize)));
     // Initialize patients
-    const initialPatients: Patient[] = [
-      {
-        id: 1,
-        name: "Alice",
-        prescription: { "Gelux": 5, "Pillora": 2, "Injecta": 1 },
-        dispensed: { "Gelux": 0, "Pillora": 0, "Injecta": 0 },
-        waitTime: 30,
-        maxWaitTime: 30,
-        status: 'waiting'
-      },
-      {
-        id: 2,
-        name: "Bob",
-        prescription: { "Tablix": 3, "Syrupix": 4 },
-        dispensed: { "Tablix": 0, "Syrupix": 0 },
-        waitTime: 25,
-        maxWaitTime: 25,
-        status: 'waiting'
-      },
-      {
-        id: 3,
-        name: "Charlie",
-        prescription: { "VitaDose": 2, "Capsulon": 1 },
-        dispensed: { "VitaDose": 0, "Capsulon": 0 },
-        waitTime: 20,
-        maxWaitTime: 20,
-        status: 'waiting'
-      },
-    ];
+    const initialPatients = [generatePatient(), generatePatient(), generatePatient()];
     dispatch(setPatients(initialPatients));
   }, [dispatch, boardSize]);
 
@@ -83,6 +52,7 @@ function App() {
   useEffect(() => {
     const interval = setInterval(() => {
       dispatch(updateTimers());
+      dispatch(cleanupPatients());
     }, 1000);
     return () => clearInterval(interval);
   }, [dispatch]);
@@ -111,15 +81,256 @@ function App() {
   return (
     <div className="h-screen">
       <BackgroundCarousel />
-      <div className="grid grid-cols-1 md:grid-cols-3 h-full">
-        <div className="md:col-span-1 p-4 bg-blue-100 bg-opacity-75 flex flex-col">
-          {/* Seating Area */}
-          <h2 className="text-2xl font-bold mb-4 text-blue-800">Waiting Patients</h2>
-          <Patients />
+      <div className="grid grid-cols-1 md:grid-cols-12 h-full">
+        {/* Patients Waiting Area / front-desk */}
+        <div className="md:col-span-3 p-4 bg-blue-100 bg-opacity-75 flex flex-col min-h-0 max-h-screen overflow-y-auto">
+          {/* Seating area */}
+          <div className="flex flex-col h-full space-y-4">
+            {/* Introduction banner */}
+            <div className="bg-white p-2 rounded shadow">
+              <img
+                src={welcomeBanner}
+                alt="Welcome Banner"
+                className="w-full h-auto rounded"
+              />
+              {/* <h2 className="text-xl font-bold text-center text-blue-800">Welcome to MediMixDash Saga</h2>
+              <p className="text-center text-sm text-gray-600">Manage your pharmacy efficiently and keep your patients happy!</p> */}
+            </div>
+
+            <div className="sticky top-0 z-10">
+              {/* 1. Time/Clock - Shift Time */}
+              <div className="bg-white p-2 rounded shadow mb-4">
+                <h3 className="text-lg font-bold text-center">Shift Time</h3>
+                <p className="text-center text-xl">
+                  {Math.floor(shiftTime / 60)}:
+                  {(shiftTime % 60).toString().padStart(2, "0")}
+                </p>
+              </div>
+
+              {/* 2. Pharmacy Consultant Windows - 5 rows */}
+              <div className="flex-1 bg-white p-2 rounded shadow overflow-y-auto min-h-[360px]">
+                <h3 className="text-lg font-bold mb-2">Consultants</h3>
+                <div className="space-y-2">
+                  {Array.from({ length: 5 }, (_, i) => {
+                    const consultantNames = [
+                      "Alice",
+                      "Bob",
+                      "Charlie",
+                      "Diana",
+                      "Eve",
+                    ];
+                    const colors = [
+                      "bg-blue-200",
+                      "bg-green-200",
+                      "bg-yellow-200",
+                      "bg-purple-200",
+                      "bg-pink-200",
+                    ];
+                    return (
+                      <div
+                        key={i}
+                        className="flex items-center space-x-2 bg-gray-50 p-2 rounded"
+                      >
+                        <div
+                          className={`w-8 h-8 ${colors[i]} rounded-full flex items-center justify-center text-sm font-bold text-gray-700`}
+                        >
+                          {consultantNames[i][0]}
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-sm font-semibold">
+                            {consultantNames[i]}
+                          </div>
+                          <div className="text-xs text-gray-600">Available</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Visual Seating Representation */}
+            <div className="flex-1 bg-white p-2 rounded shadow max-h-[50vh]">
+              <h3 className="text-lg font-bold mb-2">Seating Area</h3>
+              <div className="grid grid-cols-1 gap-2 h-full overflow-y-auto">
+                {patients.map((patient, index) => (
+                  <div
+                    key={patient.id}
+                    className={`p-4 rounded-lg shadow cursor-pointer border-2 ${
+                      patient.pinned ? "border-purple-500" : ""
+                    } ${
+                      patient.status === "completed"
+                        ? "bg-green-100 border-green-500"
+                        : patient.status === "failed"
+                        ? "bg-red-100 border-red-500"
+                        : patient.status === "dispensing"
+                        ? "bg-yellow-100 border-yellow-500"
+                        : "bg-blue-100 border-blue-300"
+                    }`}
+                    onClick={() => dispatch(pinPatient(patient.id))}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-lg font-bold text-gray-800">
+                        {patient.name}
+                      </span>
+                      <span className="text-sm font-semibold bg-blue-100 px-2 py-1 rounded">
+                        #{patient.ticketNumber}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2 mb-2">
+                      <span className="text-sm text-gray-600">
+                        Age: {patient.age}
+                      </span>
+                      <span
+                        className={`text-sm ${
+                          patient.moodStatus === "calm"
+                            ? "text-green-600"
+                            : patient.moodStatus === "impatient"
+                            ? "text-yellow-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {patient.moodStatus === "calm"
+                          ? "😊"
+                          : patient.moodStatus === "impatient"
+                          ? "😐"
+                          : "😠"}{" "}
+                        {patient.moodStatus}
+                      </span>
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${
+                          patient.status === "completed"
+                            ? "bg-green-100 text-green-800"
+                            : patient.status === "failed"
+                            ? "bg-red-100 text-red-800"
+                            : patient.status === "dispensing"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-blue-100 text-blue-800"
+                        }`}
+                      >
+                        {patient.status}
+                      </span>
+                      {patient.pinned && (
+                        <span className="text-purple-600">📌 Pinned</span>
+                      )}
+                    </div>
+                    <div className="mb-2">
+                      <div className="text-sm font-semibold">Prescription:</div>
+                      <div className="text-xs">
+                        {Object.entries(patient.prescription)
+                          .map(([med, req]) => {
+                            const disp = patient.dispensed[med] || 0;
+                            return `${med}: ${disp}/${req}`;
+                          })
+                          .join(", ")}
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div
+                        className={`h-3 rounded-full transition-all duration-1000 ${
+                          patient.waitTime > 10
+                            ? "bg-green-500"
+                            : patient.waitTime > 5
+                            ? "bg-yellow-500"
+                            : "bg-red-500"
+                        }`}
+                        style={{
+                          width: `${
+                            (patient.waitTime / patient.maxWaitTime) * 100
+                          }%`,
+                        }}
+                      ></div>
+                    </div>
+                    <div className="text-center mt-1 text-sm font-semibold">
+                      {patient.waitTime}s left
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="md:col-span-2 p-4 flex items-center justify-center">
+
+        {/* main board */}
+        <div className="md:col-span-6 p-4 flex flex-col items-center justify-center min-h-0 max-h-screen overflow-y-auto">
+          {/* 4.1 Statistics */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl shadow-lg border border-blue-200 mb-4">
+            <h3 className="text-xl font-bold mb-3 text-blue-800 flex items-center">
+              <span className="text-2xl mr-2">📊</span>
+              Pharmacy Statistics
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white p-3 rounded-lg shadow-sm border">
+                <div className="text-2xl font-bold text-blue-600">
+                  {game.statistics.totalPatients}
+                </div>
+                <div className="text-sm text-gray-600">Total Patients</div>
+              </div>
+              <div className="bg-white p-3 rounded-lg shadow-sm border">
+                <div className="text-2xl font-bold text-green-600">
+                  {game.statistics.completedPatients}
+                </div>
+                <div className="text-sm text-gray-600">Completed</div>
+              </div>
+              <div className="bg-white p-3 rounded-lg shadow-sm border">
+                <div className="text-2xl font-bold text-red-600">
+                  {game.statistics.failedPatients}
+                </div>
+                <div className="text-sm text-gray-600">Failed</div>
+              </div>
+              <div className="bg-white p-3 rounded-lg shadow-sm border">
+                <div className="text-2xl font-bold text-purple-600">
+                  {game.statistics.averageWaitTime.toFixed(1)}s
+                </div>
+                <div className="text-sm text-gray-600">Avg Wait Time</div>
+              </div>
+            </div>
+          </div>
+
           {/* Pharmacy Block */}
           <Board />
+        </div>
+
+        {/* backoffice management queue */}
+        <div className="md:col-span-3 p-4 bg-blue-100 bg-opacity-75 flex flex-col min-h-0 max-h-screen overflow-y-auto">
+          {/* Waiting list Orders */}
+          <h2 className="text-2xl font-bold mb-4 text-blue-800">
+            Waiting Patients
+          </h2>
+          <Patients />
+          {/* 4.2 Statistics */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl shadow-lg border border-blue-200 mt-4">
+            <h3 className="text-lg font-bold mb-3 text-blue-800 flex items-center">
+              <span className="text-xl mr-2">📈</span>
+              Session Stats
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white p-2 rounded-lg shadow-sm border text-center">
+                <div className="text-lg font-bold text-blue-600">
+                  {game.statistics.totalPatients}
+                </div>
+                <div className="text-xs text-gray-600">Total</div>
+              </div>
+              <div className="bg-white p-2 rounded-lg shadow-sm border text-center">
+                <div className="text-lg font-bold text-green-600">
+                  {game.statistics.completedPatients}
+                </div>
+                <div className="text-xs text-gray-600">Done</div>
+              </div>
+              <div className="bg-white p-2 rounded-lg shadow-sm border text-center">
+                <div className="text-lg font-bold text-red-600">
+                  {game.statistics.failedPatients}
+                </div>
+                <div className="text-xs text-gray-600">Failed</div>
+              </div>
+              <div className="bg-white p-2 rounded-lg shadow-sm border text-center">
+                <div className="text-lg font-bold text-purple-600">
+                  {game.statistics.averageWaitTime.toFixed(1)}s
+                </div>
+                <div className="text-xs text-gray-600">Avg Wait</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

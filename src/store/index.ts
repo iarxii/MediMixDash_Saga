@@ -1,16 +1,7 @@
 import { createSlice, configureStore, PayloadAction } from "@reduxjs/toolkit";
 import { dragEndReducer } from "./reducers/dragEnd";
 import { moveBelowReducer } from "./reducers/moveBelow";
-
-interface Patient {
-  id: number;
-  name: string;
-  prescription: { [med: string]: number };
-  dispensed: { [med: string]: number };
-  waitTime: number;
-  maxWaitTime: number;
-  status: 'waiting' | 'dispensing' | 'completed' | 'failed';
-}
+import { Patient, generatePatient } from "../utils/patientGenerator";
 
 const initialCandyCrushState: {
   board: string[];
@@ -60,6 +51,13 @@ const gameSlice = createSlice({
     complaints: 0,
     shiftTime: 300,
     shiftDuration: 300,
+    statistics: {
+      totalPatients: 0,
+      completedPatients: 0,
+      failedPatients: 0,
+      averageWaitTime: 0,
+      totalWaitTime: 0,
+    },
   },
   reducers: {
     addDashPoints: (state, action: PayloadAction<number>) => {
@@ -84,6 +82,13 @@ const gameSlice = createSlice({
       state.shiftTime = state.shiftDuration;
       state.currency = 0;
     },
+    updateStatistics: (state, action: PayloadAction<{ completed: number; failed: number; waitTime: number }>) => {
+      state.statistics.totalPatients += 1;
+      state.statistics.completedPatients += action.payload.completed;
+      state.statistics.failedPatients += action.payload.failed;
+      state.statistics.totalWaitTime += action.payload.waitTime;
+      state.statistics.averageWaitTime = state.statistics.totalWaitTime / state.statistics.totalPatients;
+    },
   },
 });
 
@@ -93,6 +98,9 @@ const patientsSlice = createSlice({
   reducers: {
     setPatients: (state, action: PayloadAction<Patient[]>) => {
       return action.payload;
+    },
+    addPatient: (state) => {
+      state.push(generatePatient());
     },
     updatePatient: (state, action: PayloadAction<{ id: number; updates: Partial<Patient> }>) => {
       const patient = state.find(p => p.id === action.payload.id);
@@ -115,10 +123,31 @@ const patientsSlice = createSlice({
     updateTimers: (state) => {
       state.forEach(p => {
         p.waitTime = Math.max(0, p.waitTime - 1);
+        // Update mood status based on remaining time
+        const timeRatio = p.waitTime / p.maxWaitTime;
+        if (timeRatio > 0.6) p.moodStatus = 'calm';
+        else if (timeRatio > 0.3) p.moodStatus = 'impatient';
+        else p.moodStatus = 'frustrated';
+        
         if (p.waitTime === 0 && p.status !== 'completed') {
           p.status = 'failed';
         }
       });
+    },
+    pinPatient: (state, action: PayloadAction<number>) => {
+      const patient = state.find(p => p.id === action.payload);
+      if (patient) {
+        patient.pinned = !patient.pinned;
+      }
+    },
+    cleanupPatients: (state) => {
+      // Remove completed and failed patients
+      const activePatients = state.filter(p => p.status === 'waiting' || p.status === 'dispensing');
+      // Add new patients to reach 3
+      while (activePatients.length < 3) {
+        activePatients.push(generatePatient());
+      }
+      return activePatients;
     },
   },
 });
@@ -138,10 +167,10 @@ export const store = configureStore({
 export const { updateBoard, moveBelow, dragDrop, dragEnd, dragStart, setDispensed, resetDispensed } =
   candyCrushSlice.actions;
 
-export const { addDashPoints, addCurrency, updateMorale, addCompliment, addComplaint, decrementShiftTime, resetShift } =
+export const { addDashPoints, addCurrency, updateMorale, addCompliment, addComplaint, decrementShiftTime, resetShift, updateStatistics } =
   gameSlice.actions;
 
-export const { setPatients, updatePatient, dispenseMed, updateTimers } = patientsSlice.actions;
+export const { setPatients, addPatient, updatePatient, dispenseMed, updateTimers, cleanupPatients, pinPatient } = patientsSlice.actions;
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

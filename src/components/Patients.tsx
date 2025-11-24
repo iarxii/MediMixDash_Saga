@@ -69,7 +69,7 @@ function Patients() {
               patient.moodStatus === 'calm' ? 'text-green-600' :
               patient.moodStatus === 'impatient' ? 'text-yellow-600' : 'text-red-600'
             }`}>
-              {patient.moodStatus === 'calm' ? '😊' : patient.moodStatus === 'impatient' ? '😐' : '😠'} {patient.moodStatus}
+              {patient.moodStatus === 'calm' ? '😊' : patient.moodStatus === 'impatient' ? '😐' : patient.moodStatus === 'frustrated' ? '😟' : patient.moodStatus === 'angry' ? '😠' : patient.moodStatus === 'complaining' ? '😤' : '📞'} {patient.moodStatus}
             </span>
           </div>
           <span className={`px-2 py-1 text-xs rounded-full ${patient.status === 'completed' ? 'bg-green-100 text-green-800' : patient.status === 'failed' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>

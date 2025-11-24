@@ -16,7 +16,7 @@ import {
   checkForRowOfThree,
   isColumnOfFour,
 } from "./utils/moveCheckLogic";
-import { dispenseMed, setPatients, updateTimers, cleanupPatients, pinPatient } from "./store";
+import { dispenseMed, setPatients, updateTimers, cleanupPatients, pinPatient, updateTime } from "./store";
 import { generatePatient } from "./utils/patientGenerator";
 
 // images
@@ -30,7 +30,6 @@ function App() {
     ({ candyCrush: { boardSize } }) => boardSize
   );
   const patients = useAppSelector((state) => state.patients);
-  const shiftTime = useAppSelector((state) => state.game.shiftTime);
   const game = useAppSelector((state) => state.game);
 
   useEffect(() => {
@@ -53,6 +52,7 @@ function App() {
     const interval = setInterval(() => {
       dispatch(updateTimers());
       dispatch(cleanupPatients());
+      dispatch(updateTime());
     }, 1000);
     return () => clearInterval(interval);
   }, [dispatch]);
@@ -100,25 +100,20 @@ function App() {
             <div className="sticky top-0 z-10">
               {/* 1. Time/Clock - Shift Time */}
               <div className="bg-white p-2 rounded shadow mb-4">
-                <h3 className="text-lg font-bold text-center">Shift Time</h3>
+                <h3 className="text-lg font-bold text-center">Current Time</h3>
                 <p className="text-center text-xl">
-                  {Math.floor(shiftTime / 60)}:
-                  {(shiftTime % 60).toString().padStart(2, "0")}
+                  {Math.floor(game.currentTime / 3600)}:
+                  {Math.floor((game.currentTime % 3600) / 60).toString().padStart(2, "0")}:
+                  {(game.currentTime % 60).toString().padStart(2, "0")}
                 </p>
+                {game.gameOver && <p className="text-center text-red-600 font-bold">Game Over!</p>}
               </div>
 
               {/* 2. Pharmacy Consultant Windows - 5 rows */}
               <div className="flex-1 bg-white p-2 rounded shadow overflow-y-auto min-h-[360px]">
                 <h3 className="text-lg font-bold mb-2">Consultants</h3>
                 <div className="space-y-2">
-                  {Array.from({ length: 5 }, (_, i) => {
-                    const consultantNames = [
-                      "Alice",
-                      "Bob",
-                      "Charlie",
-                      "Diana",
-                      "Eve",
-                    ];
+                  {game.consultants.map((consultant, i) => {
                     const colors = [
                       "bg-blue-200",
                       "bg-green-200",
@@ -128,19 +123,22 @@ function App() {
                     ];
                     return (
                       <div
-                        key={i}
+                        key={consultant.id}
                         className="flex items-center space-x-2 bg-gray-50 p-2 rounded"
                       >
                         <div
                           className={`w-8 h-8 ${colors[i]} rounded-full flex items-center justify-center text-sm font-bold text-gray-700`}
                         >
-                          {consultantNames[i][0]}
+                          {consultant.name[0]}
                         </div>
                         <div className="flex-1">
                           <div className="text-sm font-semibold">
-                            {consultantNames[i]}
+                            {consultant.name}
                           </div>
-                          <div className="text-xs text-gray-600">Available</div>
+                          <div className="text-xs text-gray-600">
+                            {consultant.status === 'available' ? '✅' : consultant.status === 'fetching' ? '🔄' : consultant.status === 'busy' ? '🏃‍♂️' : '🚪'} {consultant.status}
+                          </div>
+                          <div className="text-xs text-gray-500">Stamina: {consultant.stamina}%</div>
                         </div>
                       </div>
                     );
@@ -194,7 +192,13 @@ function App() {
                           ? "😊"
                           : patient.moodStatus === "impatient"
                           ? "😐"
-                          : "😠"}{" "}
+                          : patient.moodStatus === "frustrated"
+                          ? "😟"
+                          : patient.moodStatus === "angry"
+                          ? "😠"
+                          : patient.moodStatus === "complaining"
+                          ? "😤"
+                          : "📞"}{" "}
                         {patient.moodStatus}
                       </span>
                       <span

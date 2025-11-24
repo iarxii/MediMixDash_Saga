@@ -3,6 +3,17 @@ import { dragEndReducer } from "./reducers/dragEnd";
 import { moveBelowReducer } from "./reducers/moveBelow";
 import { Patient, generatePatient } from "../utils/patientGenerator";
 
+interface Consultant {
+  id: number;
+  name: string;
+  available: boolean;
+  stamina: number;
+  status: 'available' | 'fetching' | 'busy' | 'closed';
+  shiftStart: number;
+  shiftEnd: number;
+  currentOrder: number | null;
+}
+
 const initialCandyCrushState: {
   board: string[];
   boardSize: number;
@@ -44,13 +55,21 @@ const candyCrushSlice = createSlice({
 const gameSlice = createSlice({
   name: "game",
   initialState: {
-    dashPoints: 0,
+    dashPoints: 100, // Start with 100 grace points
     currency: 0,
     morale: 50,
     compliments: 0,
     complaints: 0,
     shiftTime: 300,
     shiftDuration: 300,
+    businessStart: 7 * 60 * 60, // 7AM in seconds
+    businessEnd: 17 * 60 * 60, // 5PM in seconds
+    currentTime: 7 * 60 * 60, // Start at 7AM
+    gameOver: false,
+    consultants: [
+      { id: 1, name: 'Alice', available: true, stamina: 100, status: 'available', shiftStart: 7 * 60 * 60, shiftEnd: 17 * 60 * 60, currentOrder: null },
+      { id: 2, name: 'Bob', available: true, stamina: 100, status: 'available', shiftStart: 7 * 60 * 60, shiftEnd: 17 * 60 * 60, currentOrder: null },
+    ] as Consultant[],
     statistics: {
       totalPatients: 0,
       completedPatients: 0,
@@ -77,10 +96,45 @@ const gameSlice = createSlice({
     },
     decrementShiftTime: (state) => {
       state.shiftTime = Math.max(0, state.shiftTime - 1);
+      state.currentTime += 1; // Increment global time by 1 second
+      if (state.dashPoints <= 0) {
+        state.gameOver = true;
+      }
     },
-    resetShift: (state) => {
-      state.shiftTime = state.shiftDuration;
-      state.currency = 0;
+    updateTime: (state) => {
+      state.currentTime += 1;
+      // Update consultant statuses based on shift hours
+      state.consultants.forEach(consultant => {
+        if (state.currentTime >= consultant.shiftStart && state.currentTime <= consultant.shiftEnd) {
+          if (consultant.status === 'closed') {
+            consultant.status = 'available';
+            consultant.available = true;
+          }
+        } else {
+          consultant.status = 'closed';
+          consultant.available = false;
+        }
+      });
+      if (state.dashPoints <= 0) {
+        state.gameOver = true;
+      }
+    },
+    assignConsultantOrder: (state, action: PayloadAction<{ consultantId: number; patientId: number }>) => {
+      const consultant = state.consultants.find(c => c.id === action.payload.consultantId);
+      if (consultant && consultant.available) {
+        consultant.status = 'fetching';
+        consultant.currentOrder = action.payload.patientId;
+        consultant.available = false;
+      }
+    },
+    completeConsultantOrder: (state, action: PayloadAction<number>) => {
+      const consultant = state.consultants.find(c => c.id === action.payload);
+      if (consultant) {
+        consultant.status = 'available';
+        consultant.available = true;
+        consultant.currentOrder = null;
+        consultant.stamina = Math.max(0, consultant.stamina - 10); // Reduce stamina
+      }
     },
     updateStatistics: (state, action: PayloadAction<{ completed: number; failed: number; waitTime: number }>) => {
       state.statistics.totalPatients += 1;
@@ -125,9 +179,12 @@ const patientsSlice = createSlice({
         p.waitTime = Math.max(0, p.waitTime - 1);
         // Update mood status based on remaining time
         const timeRatio = p.waitTime / p.maxWaitTime;
-        if (timeRatio > 0.6) p.moodStatus = 'calm';
-        else if (timeRatio > 0.3) p.moodStatus = 'impatient';
-        else p.moodStatus = 'frustrated';
+        if (timeRatio > 0.8) p.moodStatus = 'calm';
+        else if (timeRatio > 0.6) p.moodStatus = 'impatient';
+        else if (timeRatio > 0.4) p.moodStatus = 'frustrated';
+        else if (timeRatio > 0.2) p.moodStatus = 'angry';
+        else if (timeRatio > 0.1) p.moodStatus = 'complaining';
+        else p.moodStatus = 'complaint lodged';
         
         if (p.waitTime === 0 && p.status !== 'completed') {
           p.status = 'failed';
@@ -167,7 +224,7 @@ export const store = configureStore({
 export const { updateBoard, moveBelow, dragDrop, dragEnd, dragStart, setDispensed, resetDispensed } =
   candyCrushSlice.actions;
 
-export const { addDashPoints, addCurrency, updateMorale, addCompliment, addComplaint, decrementShiftTime, resetShift, updateStatistics } =
+export const { addDashPoints, addCurrency, updateMorale, addCompliment, addComplaint, decrementShiftTime, updateStatistics, updateTime, assignConsultantOrder, completeConsultantOrder } =
   gameSlice.actions;
 
 export const { setPatients, addPatient, updatePatient, dispenseMed, updateTimers, cleanupPatients, pinPatient } = patientsSlice.actions;

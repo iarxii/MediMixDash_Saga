@@ -11,7 +11,7 @@ export interface Patient {
   status: 'waiting' | 'dispensing' | 'completed' | 'failed';
   ticketNumber: number;
   lineType: 'Express' | 'Normal' | 'Priority';
-  moodStatus: 'calm' | 'impatient' | 'frustrated';
+  moodStatus: 'calm' | 'impatient' | 'frustrated' | 'angry' | 'complaining' | 'complaint lodged';
   pinned: boolean;
 }
 
@@ -39,14 +39,19 @@ export function generatePatient(): Patient {
   else if (Math.random() < 0.1) lineType = 'Express'; // 10% chance for express
   else if (Math.random() < 0.2) lineType = 'Priority'; // Additional 20% for priority (pregnant/emergency)
 
+  // Set maxWaitTime based on line type
+  let maxWaitTime = 60; // Normal
+  if (lineType === 'Express') maxWaitTime = 30;
+  else if (lineType === 'Priority') maxWaitTime = 15;
+
   return {
     id: Date.now(),
     name: `${name} ${surname}`,
     age,
     prescription,
     dispensed: {},
-    waitTime: 30,
-    maxWaitTime: 30,
+    waitTime: maxWaitTime,
+    maxWaitTime,
     status: 'waiting',
     ticketNumber: Math.floor(Math.random() * 1000) + 1, // Random ticket number
     lineType,

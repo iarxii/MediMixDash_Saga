@@ -1,7 +1,7 @@
 # MediMixDash Saga Game Logic and Algorithms
 
 ## Overview
-MediMixDash Saga is a pharmacy management simulation game with match-3 mechanics for dispensing medications. The game integrates real-time patient management, consultant assistance, and scoring systems.
+MediMixDash Saga is a pharmacy management simulation game with match-3 mechanics for dispensing medications. The game integrates real-time patient management, consultant assistance, scoring systems, and pharmacy management with rotating managers and special abilities.
 
 ## Core Components
 
@@ -163,6 +163,28 @@ if (currentTime >= shiftStart && currentTime <= shiftEnd) {
 }
 ```
 
+### 6. Management System
+
+#### Manager Roles
+- **Day Shift Pharmacy Managers**: Dr. Sarah Mitchell, Dr. Michael Chen
+- **Night Shift Pharmacy Manager**: Dr. Emily Rodriguez
+- **Rotation**: Automatic shift-based rotation between available managers
+- **Stamina System**: Managers have stamina that affects performance (0-100%)
+
+#### Special Abilities
+Managers unlock special abilities based on milestones:
+- **Time Freeze** (Dr. Sarah Mitchell): Freeze all patient timers for 10 seconds
+  - *Requirement*: Complete 50 patients without complaints
+- **Consultant Boost** (Dr. Michael Chen): Double consultant speed for 30 seconds
+  - *Requirement*: Maintain 95%+ patient satisfaction for 24 hours
+- **Emergency Mode** (Dr. Emily Rodriguez): Automatically prioritize emergency patients
+  - *Requirement*: Handle 25 emergency cases successfully
+
+#### Manager Statistics
+- **Complaints Tracking**: Real-time count of patient complaints
+- **Patient Retention**: Track patients who left due to poor service
+- **Performance Metrics**: Stamina levels and ability unlocks
+
 ## Data Flow
 
 1. **Player Action**: Swap tiles on board
@@ -172,6 +194,7 @@ if (currentTime >= shiftStart && currentTime <= shiftEnd) {
 5. **Scoring**: Points calculated based on completion, speed, sentiment
 6. **Time Update**: Global time advances, affecting all timers
 7. **Consultant Update**: Status and assignments updated
-8. **UI Refresh**: All components reflect current state
+8. **Manager Update**: Current manager rotates based on shift, stamina depletes
+9. **UI Refresh**: All components reflect current state including manager stats
 
-This interconnected system creates a dynamic pharmacy simulation where player actions have cascading effects on patients, consultants, and scoring.
+This interconnected system creates a dynamic pharmacy simulation where player actions have cascading effects on patients, consultants, managers, and scoring.

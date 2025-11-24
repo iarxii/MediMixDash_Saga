@@ -3,7 +3,7 @@ import BackgroundCarousel from "./components/BackgroundCarousel";
 import Board from "./components/Board";
 import Consultant from "./components/Consultant";
 import Patients from "./components/Patients";
-import { moveBelow, updateBoard, resetDispensed, updateTime, assignConsultantOrder, completeConsultantOrder, addDashPoints, addComplaint } from "./store";
+import { moveBelow, updateBoard, resetDispensed, updateTime, assignConsultantOrder, completeConsultantOrder, addDashPoints, addComplaint, updateCurrentManager } from "./store";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import { createBoard } from "./utils/createBoard";
 import {
@@ -54,6 +54,7 @@ function App() {
       dispatch(updateTimers());
       dispatch(cleanupPatients(game.currentTime));
       dispatch(updateTime());
+      dispatch(updateCurrentManager());
     }, 1000);
     return () => clearInterval(interval);
   }, [dispatch, game.currentTime]);
@@ -262,42 +263,112 @@ function App() {
 
         {/* main board */}
         <div className="md:col-span-6 p-4 flex flex-col items-center justify-center min-h-0 max-h-screen overflow-y-auto">
-          {/* 4.1 Statistics */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl shadow-lg border border-blue-200 mb-4">
-            <h3 className="text-xl font-bold mb-3 text-blue-800 flex items-center">
-              <span className="text-2xl mr-2">📊</span>
-              Pharmacy Statistics
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white p-3 rounded-lg shadow-sm border">
-                <div className="text-2xl font-bold text-blue-600">
-                  {game.statistics.totalPatients}
+          {/* Pharmacy Block */}
+          <Board />
+
+          {/* Statistics and Complaints Row */}
+          <div className="w-full mb-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* 4.1 Statistics */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl shadow-lg border border-blue-200">
+              <h3 className="text-xl font-bold mb-3 text-blue-800 flex items-center">
+                <span className="text-2xl mr-2">📊</span>
+                Pharmacy Statistics
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white p-3 rounded-lg shadow-sm border">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {game.statistics.totalPatients}
+                  </div>
+                  <div className="text-sm text-gray-600">Total Patients</div>
                 </div>
-                <div className="text-sm text-gray-600">Total Patients</div>
+                <div className="bg-white p-3 rounded-lg shadow-sm border">
+                  <div className="text-2xl font-bold text-green-600">
+                    {game.statistics.completedPatients}
+                  </div>
+                  <div className="text-sm text-gray-600">Completed</div>
+                </div>
+                <div className="bg-white p-3 rounded-lg shadow-sm border">
+                  <div className="text-2xl font-bold text-red-600">
+                    {game.statistics.failedPatients}
+                  </div>
+                  <div className="text-sm text-gray-600">Failed</div>
+                </div>
+                <div className="bg-white p-3 rounded-lg shadow-sm border">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {game.statistics.averageWaitTime.toFixed(1)}s
+                  </div>
+                  <div className="text-sm text-gray-600">Avg Wait Time</div>
+                </div>
               </div>
-              <div className="bg-white p-3 rounded-lg shadow-sm border">
-                <div className="text-2xl font-bold text-green-600">
-                  {game.statistics.completedPatients}
+            </div>
+
+            {/* 4.2 Complaints & Manager */}
+            <div className="bg-gradient-to-r from-red-50 to-orange-50 p-4 rounded-xl shadow-lg border border-red-200">
+              <h3 className="text-xl font-bold mb-3 text-red-800 flex items-center">
+                <span className="text-2xl mr-2">📞</span>
+                Complaints & Management
+              </h3>
+              <div className="space-y-4">
+                {/* Current Manager */}
+                <div className="bg-white p-3 rounded-lg shadow-sm border">
+                  {game.currentManager ? (() => {
+                    const manager = game.currentManager!;
+                    return (
+                      <>
+                        <div className="flex items-center space-x-3">
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-xl font-bold">
+                            {manager.name.charAt(0)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-semibold text-gray-800">{manager.name}</div>
+                            <div className="text-sm text-gray-600">{manager.role}</div>
+                            <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                              <div
+                                className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${manager.stamina}%` }}
+                              ></div>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">Stamina: {manager.stamina}%</div>
+                          </div>
+                        </div>
+
+                        {/* Manager Special Ability */}
+                        {manager.specialAbility && manager.specialAbility.unlocked && (
+                          <div className="mt-3 p-2 bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg border border-yellow-300">
+                            <div className="text-sm font-semibold text-yellow-800">🎯 Special Ability</div>
+                            <div className="text-xs text-yellow-700">{manager.specialAbility.description}</div>
+                            <div className="text-xs text-gray-600 mt-1">
+                              Unlocked at: {manager.specialAbility.requirement}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })() : (
+                    <div className="text-center text-gray-500 py-4">
+                      <div className="text-lg">👨‍💼</div>
+                      <div className="text-sm">No manager on duty</div>
+                    </div>
+                  )}
                 </div>
-                <div className="text-sm text-gray-600">Completed</div>
-              </div>
-              <div className="bg-white p-3 rounded-lg shadow-sm border">
-                <div className="text-2xl font-bold text-red-600">
-                  {game.statistics.failedPatients}
+                
+                {/* Complaints Stats */}
+                <div className="bg-white p-3 rounded-lg shadow-sm border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-semibold text-gray-700">Complaints Today</span>
+                    <span className="text-lg font-bold text-red-600">{game.complaints}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-gray-700">Patients Left</span>
+                    <span className="text-lg font-bold text-orange-600">
+                      {patients.filter(p => p.moodStatus === 'left').length}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-sm text-gray-600">Failed</div>
-              </div>
-              <div className="bg-white p-3 rounded-lg shadow-sm border">
-                <div className="text-2xl font-bold text-purple-600">
-                  {game.statistics.averageWaitTime.toFixed(1)}s
-                </div>
-                <div className="text-sm text-gray-600">Avg Wait Time</div>
+
               </div>
             </div>
           </div>
-
-          {/* Pharmacy Block */}
-          <Board />
         </div>
 
         {/* backoffice management queue */}

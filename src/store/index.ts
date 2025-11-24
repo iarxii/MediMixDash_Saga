@@ -14,6 +14,20 @@ interface Consultant {
   currentOrder: number | null;
 }
 
+interface Manager {
+  id: number;
+  name: string;
+  role: string;
+  shiftType: 'day' | 'night';
+  stamina: number;
+  specialAbility?: {
+    name: string;
+    description: string;
+    requirement: string;
+    unlocked: boolean;
+  };
+}
+
 const initialCandyCrushState: {
   board: string[];
   boardSize: number;
@@ -57,6 +71,30 @@ const candyCrushSlice = createSlice({
   },
 });
 
+interface GameState {
+  dashPoints: number;
+  currency: number;
+  morale: number;
+  compliments: number;
+  complaints: number;
+  shiftTime: number;
+  shiftDuration: number;
+  businessStart: number;
+  businessEnd: number;
+  currentTime: number;
+  gameOver: boolean;
+  consultants: Consultant[];
+  statistics: {
+    totalPatients: number;
+    completedPatients: number;
+    failedPatients: number;
+    averageWaitTime: number;
+    totalWaitTime: number;
+  };
+  managers: Manager[];
+  currentManager: Manager | null;
+}
+
 const gameSlice = createSlice({
   name: "game",
   initialState: {
@@ -83,7 +121,49 @@ const gameSlice = createSlice({
       averageWaitTime: 0,
       totalWaitTime: 0,
     },
-  },
+    managers: [
+      {
+        id: 1,
+        name: 'Dr. Sarah Mitchell',
+        role: 'Day Shift Pharmacy Manager',
+        shiftType: 'day',
+        stamina: 100,
+        specialAbility: {
+          name: 'Time Freeze',
+          description: 'Freeze all patient timers for 10 seconds',
+          requirement: 'Complete 50 patients without complaints',
+          unlocked: false
+        }
+      },
+      {
+        id: 2,
+        name: 'Dr. Michael Chen',
+        role: 'Day Shift Pharmacy Manager',
+        shiftType: 'day',
+        stamina: 100,
+        specialAbility: {
+          name: 'Consultant Boost',
+          description: 'Double consultant speed for 30 seconds',
+          requirement: 'Maintain 95%+ patient satisfaction for 24 hours',
+          unlocked: false
+        }
+      },
+      {
+        id: 3,
+        name: 'Dr. Emily Rodriguez',
+        role: 'Night Shift Pharmacy Manager',
+        shiftType: 'night',
+        stamina: 100,
+        specialAbility: {
+          name: 'Emergency Mode',
+          description: 'Automatically prioritize emergency patients',
+          requirement: 'Handle 25 emergency cases successfully',
+          unlocked: false
+        }
+      }
+    ],
+    currentManager: null,
+  } as GameState,
   reducers: {
     addDashPoints: (state, action: PayloadAction<number>) => {
       state.dashPoints += action.payload;
@@ -166,6 +246,31 @@ const gameSlice = createSlice({
       state.statistics.failedPatients += action.payload.failed;
       state.statistics.totalWaitTime += action.payload.waitTime;
       state.statistics.averageWaitTime = state.statistics.totalWaitTime / state.statistics.totalPatients;
+    },
+    updateCurrentManager: (state) => {
+      const currentHour = Math.floor(state.currentTime / 3600);
+      const isDayShift = currentHour >= 7 && currentHour < 17;
+      
+      // Filter managers by shift type
+      const availableManagers = state.managers.filter(m => m.shiftType === (isDayShift ? 'day' : 'night'));
+      
+      if (availableManagers.length > 0) {
+        // Rotate through available managers
+        const currentIndex = state.currentManager ? availableManagers.findIndex(m => m.id === state.currentManager!.id) : -1;
+        const nextIndex = (currentIndex + 1) % availableManagers.length;
+        state.currentManager = availableManagers[nextIndex];
+      }
+    },
+    updateManagerStamina: (state, action: PayloadAction<number>) => {
+      if (state.currentManager) {
+        state.currentManager.stamina = Math.max(0, Math.min(100, state.currentManager.stamina + action.payload));
+      }
+    },
+    unlockManagerAbility: (state, action: PayloadAction<number>) => {
+      const manager = state.managers.find(m => m.id === action.payload);
+      if (manager && manager.specialAbility) {
+        manager.specialAbility.unlocked = true;
+      }
     },
   },
 });
@@ -285,7 +390,7 @@ export const store = configureStore({
 export const { updateBoard, moveBelow, dragDrop, dragEnd, dragStart, setDispensed, resetDispensed, setHighlighted } =
   candyCrushSlice.actions;
 
-export const { addDashPoints, addCurrency, updateMorale, addCompliment, addComplaint, decrementShiftTime, updateStatistics, updateTime, assignConsultantOrder, completeConsultantOrder } =
+export const { addDashPoints, addCurrency, updateMorale, addCompliment, addComplaint, decrementShiftTime, updateStatistics, updateTime, assignConsultantOrder, completeConsultantOrder, updateCurrentManager, updateManagerStamina, unlockManagerAbility } =
   gameSlice.actions;
 
 export const { setPatients, addPatient, updatePatient, dispenseMed, updateTimers, cleanupPatients, pinPatient } = patientsSlice.actions;

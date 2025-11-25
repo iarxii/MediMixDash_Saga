@@ -1,11 +1,15 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import BackgroundCarousel from "./components/BackgroundCarousel";
 import Board from "./components/Board";
 import Consultant from "./components/Consultant";
 import Patients from "./components/Patients";
-import { moveBelow, updateBoard, resetDispensed, updateTime, assignConsultantOrder, completeConsultantOrder, addDashPoints, addComplaint, updateCurrentManager } from "./store";
+import Statistics from "./components/Statistics";
+import { moveBelow, updateBoard, resetDispensed, updateTime, assignConsultantOrder, addDashPoints, addComplaint, updateCurrentManager, updateHelpCooldowns, updateStatistics, addCurrency, updateMorale, addCompliment, incrementTotalQueued, setHighlighted, setConsultantCooldown, callAllConsultantsHelp, setAutoMatched, startConsultantHelp, endConsultantHelp, setPatients, dispenseMed, updateTimers, cleanupPatients, dragEnd, updatePatient, pinPatient } from "./store";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import { createBoard } from "./utils/createBoard";
+import { findValidMoves } from "./utils/findValidMoves";
+import { findSmartRearrangements } from "./utils/findValidMoves";
+import { generatePatient } from "./utils/patientGenerator";
 import {
   formulaForColumnOfFour,
   formulaForColumnOfThree,
@@ -17,8 +21,6 @@ import {
   checkForRowOfThree,
   isColumnOfFour,
 } from "./utils/moveCheckLogic";
-import { dispenseMed, setPatients, updateTimers, cleanupPatients, pinPatient, updatePatient } from "./store";
-import { generatePatient } from "./utils/patientGenerator";
 
 // images
 import welcomeBanner from './assets/welcome-banner.png';
@@ -33,11 +35,56 @@ function App() {
   const patients = useAppSelector((state) => state.patients);
   const game = useAppSelector((state) => state.game);
 
+  // Add state for consultant help visual effects
+  const [consultantHelpActive, setConsultantHelpActive] = useState(false);
+  const [helpPopupMessage, setHelpPopupMessage] = useState<string | null>(null);
+  const [helpPopupVisible, setHelpPopupVisible] = useState(false);
+
+  // Game speed: 1 real second = 4 game seconds (configurable)
+
+  // Helper function to detect all matches on the board
+  const detectAllMatches = (board: string[], boardSize: number): number[] => {
+    const allMatches: number[] = [];
+    
+    // Check for column of four
+    for (let i = 0; i <= formulaForColumnOfFour(boardSize); i++) {
+      const columnOfFour = isColumnOfFour(board, boardSize, formulaForColumnOfFour(boardSize));
+      if (columnOfFour.length > 0) {
+        allMatches.push(...columnOfFour);
+      }
+    }
+    
+    // Check for row of four
+    const rowOfFour = checkForRowOfFour(board, boardSize, generateInvalidMoves(boardSize, true));
+    if (rowOfFour.length > 0) {
+      allMatches.push(...rowOfFour);
+    }
+    
+    // Check for column of three
+    const columnOfThree = checkForColumnOfThree(board, boardSize, formulaForColumnOfThree(boardSize));
+    if (columnOfThree.length > 0) {
+      allMatches.push(...columnOfThree);
+    }
+    
+    // Check for row of three
+    const rowOfThree = checkForRowOfThree(board, boardSize, generateInvalidMoves(boardSize));
+    if (rowOfThree.length > 0) {
+      allMatches.push(...rowOfThree);
+    }
+    
+    // Remove duplicates
+    return allMatches.filter((item, index) => allMatches.indexOf(item) === index);
+  };
+
   useEffect(() => {
     dispatch(updateBoard(createBoard(boardSize)));
     // Initialize patients
     const initialPatients = [generatePatient(7 * 60 * 60), generatePatient(7 * 60 * 60), generatePatient(7 * 60 * 60)];
     dispatch(setPatients(initialPatients));
+    // Increment total queued counter for initial patients
+    for (let i = 0; i < initialPatients.length; i++) {
+      dispatch(incrementTotalQueued());
+    }
   }, [dispatch, boardSize]);
 
   useEffect(() => {
@@ -51,13 +98,48 @@ function App() {
 
   useEffect(() => {
     const interval = setInterval(() => {
+      // Check for completed/failed patients before updating timers
+      const completedPatients = patients.filter(p => p.status === 'completed');
+      const failedPatients = patients.filter(p => p.status === 'failed');
+      
       dispatch(updateTimers());
+      
+      // Update statistics for completed/failed patients
+      if (completedPatients.length > 0 || failedPatients.length > 0) {
+        completedPatients.forEach(patient => {
+          const waitTime = patient.maxWaitTime - patient.waitTime;
+          dispatch(updateStatistics({ completed: 1, failed: 0, waitTime }));
+          dispatch(addDashPoints(50)); // Base completion points
+          dispatch(addCurrency(10)); // Currency reward
+          dispatch(updateMorale(5)); // Morale boost
+          dispatch(addCompliment()); // Add compliment
+        });
+        
+        failedPatients.forEach(patient => {
+          const waitTime = patient.maxWaitTime - patient.waitTime;
+          dispatch(updateStatistics({ completed: 0, failed: 1, waitTime }));
+          dispatch(addDashPoints(-30)); // Failure penalty
+          dispatch(updateMorale(-10)); // Morale penalty
+          dispatch(addComplaint()); // Add complaint
+        });
+      }
+      
+      // Count active patients before cleanup
+      const activePatientsBefore = patients.filter(p => p.status === 'waiting' || p.status === 'dispensing').length;
+      
       dispatch(cleanupPatients(game.currentTime));
+      
+      // Increment total queued counter for new patients added during cleanup
+      const patientsAdded = Math.max(0, 3 - activePatientsBefore);
+      for (let i = 0; i < patientsAdded; i++) {
+        dispatch(incrementTotalQueued());
+      }
       dispatch(updateTime());
       dispatch(updateCurrentManager());
+      dispatch(updateHelpCooldowns());
     }, 1000);
     return () => clearInterval(interval);
-  }, [dispatch, game.currentTime]);
+  }, [dispatch, game.currentTime, patients]);
 
   // Check for mood state changes and apply penalties
   useEffect(() => {
@@ -94,6 +176,18 @@ function App() {
       checkForRowOfThree(newBoard, boardSize, generateInvalidMoves(boardSize));
       dispatch(updateBoard(newBoard));
       dispatch(moveBelow());
+      
+      // Check for any remaining matches after board update and highlight them
+      setTimeout(() => {
+        const matches = detectAllMatches(newBoard, boardSize);
+        if (matches.length > 0) {
+          dispatch(setHighlighted(matches));
+          // Clear highlighting after 2 seconds
+          setTimeout(() => {
+            dispatch(setHighlighted([]));
+          }, 2000);
+        }
+      }, 200); // Small delay to allow board to settle
     }, 150);
     return () => clearTimeout(timeout);
   }, [board, dispatch, boardSize]);
@@ -101,6 +195,34 @@ function App() {
   return (
     <div className="h-screen">
       <BackgroundCarousel />
+      
+      {/* Consultant Help Popup */}
+      {helpPopupVisible && helpPopupMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
+          <div className="bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg border-2 border-blue-300">
+            <div className="flex items-center space-x-2">
+              <span className="text-2xl">🧠</span>
+              <span className="font-bold text-lg">{helpPopupMessage}</span>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Consultant Help Overlay */}
+      {consultantHelpActive && (
+        <div className="fixed inset-0 bg-blue-500 bg-opacity-10 pointer-events-none z-40">
+          <div className="absolute top-20 left-1/2 transform -translate-x-1/2">
+            <div className="bg-white bg-opacity-90 px-4 py-2 rounded-lg shadow-lg border-2 border-blue-400 animate-pulse">
+              <div className="flex items-center space-x-2 text-blue-800">
+                <span className="text-xl animate-spin">⚡</span>
+                <span className="font-semibold">Consultants Optimizing Board</span>
+                <span className="text-xl animate-spin">⚡</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="grid grid-cols-1 md:grid-cols-12 h-full">
         {/* Patients Waiting Area / front-desk */}
         <div className="md:col-span-3 p-4 bg-blue-100 bg-opacity-75 flex flex-col min-h-0 max-h-screen overflow-y-auto">
@@ -131,7 +253,125 @@ function App() {
 
               {/* 2. Pharmacy Consultant Windows - 5 rows */}
               <div className="flex-1 bg-white p-2 rounded shadow overflow-y-auto min-h-[360px]">
-                <h3 className="text-lg font-bold mb-2">Consultants</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-bold">Consultants</h3>
+                  <button
+                    onClick={() => {
+                      const availableConsultants = game.consultants.filter(c => c.status === 'available' && !c.helpCooldown);
+                      if (availableConsultants.length > 0) {
+                        // Set all available consultants to helping status with 20s cooldown
+                        dispatch(callAllConsultantsHelp());
+                        
+                        // Activate visual help effects
+                        setConsultantHelpActive(true);
+                        setHelpPopupMessage(`${availableConsultants.length} consultant${availableConsultants.length > 1 ? 's are' : ' is'} optimizing the board!`);
+                        setHelpPopupVisible(true);
+                        setTimeout(() => setHelpPopupVisible(false), 3000);
+                        
+                        // Trigger help effects
+                        const validMoves = findValidMoves(board, boardSize);
+                        dispatch(setHighlighted(validMoves));
+                        
+                        // Calculate total helping count (available consultants that will be set to helping)
+                        const totalHelpingCount = availableConsultants.length;
+                        
+                        let helpDuration = 10000; // Default 10 seconds
+                        let autoMatchInterval: NodeJS.Timeout | null = null;
+                        
+                        if (totalHelpingCount >= 3) {
+                          helpDuration = 10000; // 10 seconds for 3+
+                          // Start smart rearrangement for maximum efficiency
+                          autoMatchInterval = setInterval(() => {
+                            const smartRearrangements = findSmartRearrangements(board, boardSize);
+                            if (smartRearrangements.length > 0) {
+                              // Use the best rearrangement
+                              const bestRearrangement = smartRearrangements[0];
+                              dispatch(setAutoMatched([bestRearrangement.fromIndex, bestRearrangement.toIndex]));
+                              dispatch({ type: 'candyCrush/dragStart', payload: { getAttribute: () => bestRearrangement.fromIndex.toString() } });
+                              dispatch({ type: 'candyCrush/dragDrop', payload: { getAttribute: () => bestRearrangement.toIndex.toString() } });
+                              dispatch(dragEnd());
+                              setTimeout(() => dispatch(setAutoMatched([])), 1000);
+                            } else {
+                              // Fallback to regular valid moves if no smart rearrangements found
+                              const currentValidMoves = findValidMoves(board, boardSize);
+                              if (currentValidMoves.length > 0) {
+                                const firstValidIndex = currentValidMoves[0];
+                                if (firstValidIndex !== undefined) {
+                                  const col = firstValidIndex % boardSize;
+                                  if (col < boardSize - 1) {
+                                    const rightIndex = firstValidIndex + 1;
+                                    dispatch(setAutoMatched([firstValidIndex, rightIndex]));
+                                    dispatch({ type: 'candyCrush/dragStart', payload: { getAttribute: () => firstValidIndex.toString() } });
+                                    dispatch({ type: 'candyCrush/dragDrop', payload: { getAttribute: () => rightIndex.toString() } });
+                                    dispatch(dragEnd());
+                                    setTimeout(() => dispatch(setAutoMatched([])), 1000);
+                                  }
+                                }
+                              }
+                            }
+                          }, 2000);
+                        } else if (totalHelpingCount >= 2) {
+                          helpDuration = 20000; // 20 seconds for 2
+                          // Start smart rearrangement - look for tiles in proximity that can be rearranged for better matches
+                          autoMatchInterval = setInterval(() => {
+                            const smartRearrangements = findSmartRearrangements(board, boardSize);
+                            if (smartRearrangements.length > 0) {
+                              // Use the best rearrangement
+                              const bestRearrangement = smartRearrangements[0];
+                              dispatch(setAutoMatched([bestRearrangement.fromIndex, bestRearrangement.toIndex]));
+                              dispatch({ type: 'candyCrush/dragStart', payload: { getAttribute: () => bestRearrangement.fromIndex.toString() } });
+                              dispatch({ type: 'candyCrush/dragDrop', payload: { getAttribute: () => bestRearrangement.toIndex.toString() } });
+                              dispatch(dragEnd());
+                              setTimeout(() => dispatch(setAutoMatched([])), 1000);
+                            } else {
+                              // Fallback to regular valid moves if no smart rearrangements found
+                              const currentValidMoves = findValidMoves(board, boardSize);
+                              if (currentValidMoves.length > 0) {
+                                const firstValidIndex = currentValidMoves[0];
+                                if (firstValidIndex !== undefined) {
+                                  const col = firstValidIndex % boardSize;
+                                  if (col < boardSize - 1) {
+                                    const rightIndex = firstValidIndex + 1;
+                                    dispatch(setAutoMatched([firstValidIndex, rightIndex]));
+                                    dispatch({ type: 'candyCrush/dragStart', payload: { getAttribute: () => firstValidIndex.toString() } });
+                                    dispatch({ type: 'candyCrush/dragDrop', payload: { getAttribute: () => rightIndex.toString() } });
+                                    dispatch(dragEnd());
+                                    setTimeout(() => dispatch(setAutoMatched([])), 1000);
+                                  }
+                                }
+                              }
+                            }
+                          }, 2500); // Slightly slower interval for more strategic moves
+                        } else if (totalHelpingCount >= 1) {
+                          helpDuration = 10000; // 10 seconds for 1 (just highlighting, no auto-matching)
+                          // No auto-matching for single consultant - just highlighting
+                        }
+                        
+                        // End help after duration
+                        setTimeout(() => {
+                          if (autoMatchInterval) clearInterval(autoMatchInterval);
+                          // End help for all consultants that were helping
+                          availableConsultants.forEach(consultant => {
+                            dispatch(endConsultantHelp(consultant.id));
+                          });
+                          dispatch(setHighlighted([]));
+                          setConsultantHelpActive(false);
+                          setHelpPopupMessage(`${availableConsultants.length} consultant${availableConsultants.length > 1 ? 's' : ''} finished optimizing!`);
+                          setHelpPopupVisible(true);
+                          setTimeout(() => setHelpPopupVisible(false), 2000);
+                        }, helpDuration);
+                      }
+                    }}
+                    className={`font-bold py-2 px-4 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200 ${
+                      consultantHelpActive
+                        ? 'bg-green-500 hover:bg-green-600 text-white animate-pulse'
+                        : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    disabled={game.consultants.filter(c => c.status === 'available' && !c.helpCooldown).length === 0}
+                  >
+                    {consultantHelpActive ? '🧠 Optimizing...' : '🚨 Call All for Help'}
+                  </button>
+                </div>
                 <div className="space-y-2">
                   {game.consultants.map((consultant, i) => (
                     <Consultant key={consultant.id} consultant={consultant} index={i} />
@@ -351,7 +591,7 @@ function App() {
                     </div>
                   )}
                 </div>
-                
+
                 {/* Complaints Stats */}
                 <div className="bg-white p-3 rounded-lg shadow-sm border">
                   <div className="flex items-center justify-between mb-2">
@@ -374,43 +614,76 @@ function App() {
         {/* backoffice management queue */}
         <div className="md:col-span-3 p-4 bg-blue-100 bg-opacity-75 flex flex-col min-h-0 max-h-screen overflow-y-auto">
           {/* Waiting list Orders */}
-          <h2 className="text-2xl font-bold mb-4 text-blue-800">
-            Waiting Patients
-          </h2>
+          {(() => {
+            const currentWaiting = patients.filter(p => p.status === 'waiting').length;
+            const totalQueued = game.statistics.totalPatientsQueued;
+            const completed = game.statistics.completedPatients;
+            const failed = game.statistics.failedPatients;
+            const pending = patients.filter(p => p.status === 'waiting' || p.status === 'dispensing').length;
+            const totalProcessed = game.statistics.totalPatients;
+            
+            // Calculate success rate: successful dispensed divided by total patients
+            const successRate = totalProcessed > 0 ? Math.round((completed / totalProcessed) * 100) : 0;
+            
+            // Calculate total time taken since game start (7AM)
+            const startTime = 7 * 60 * 60; // 7AM in seconds
+            const totalSecondsTaken = game.currentTime - startTime;
+            
+            // Format total time taken
+            let totalTimeDisplay = '';
+            if (totalSecondsTaken < 60) {
+              totalTimeDisplay = `${totalSecondsTaken}s`;
+            } else if (totalSecondsTaken < 3600) {
+              const minutes = Math.floor(totalSecondsTaken / 60);
+              const seconds = totalSecondsTaken % 60;
+              totalTimeDisplay = `${minutes}m ${seconds}s`;
+            } else {
+              const hours = Math.floor(totalSecondsTaken / 3600);
+              const minutes = Math.floor((totalSecondsTaken % 3600) / 60);
+              totalTimeDisplay = `${hours}h ${minutes}m`;
+            }
+            
+            // Determine performance rating
+            let performanceRating = '';
+            let ratingColor = '';
+            if (successRate > 100) {
+              performanceRating = 'Error';
+              ratingColor = 'text-red-600';
+            } else if (successRate >= 91) {
+              performanceRating = 'Excellent performance';
+              ratingColor = 'text-green-600';
+            } else if (successRate >= 61) {
+              performanceRating = 'Picking up the pace';
+              ratingColor = 'text-blue-600';
+            } else if (successRate >= 31) {
+              performanceRating = 'Slow';
+              ratingColor = 'text-yellow-600';
+            } else {
+              performanceRating = 'Poor';
+              ratingColor = 'text-red-600';
+            }
+            
+            return (
+              <div className="bg-white p-2 rounded shadow mb-4 sticky top-0 z-10">
+                <h2 className="text-2xl font-bold text-blue-800">
+                  Waiting Patients ({currentWaiting}/{totalQueued})
+                </h2>
+                <div className="text-sm text-gray-600 mt-1">
+                  Completed: <span className="text-green-600 font-semibold">{completed}</span> | 
+                  Failed: <span className="text-red-600 font-semibold">{failed}</span> | 
+                  Pending: <span className="text-blue-600 font-semibold">{pending}</span> | 
+                  Success Rate: <span className="font-semibold">{successRate}%</span> | 
+                  <span className={`font-semibold ${ratingColor}`}>{performanceRating}</span>
+                </div>
+                <div className="text-sm text-gray-600 mt-1">
+                  Total Time Taken: <span className="font-semibold text-purple-600">{totalTimeDisplay}</span>
+                </div>
+              </div>
+            );
+          })()}
           <Patients />
-          {/* 4.2 Statistics */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl shadow-lg border border-blue-200 mt-4">
-            <h3 className="text-lg font-bold mb-3 text-blue-800 flex items-center">
-              <span className="text-xl mr-2">📈</span>
-              Session Stats
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white p-2 rounded-lg shadow-sm border text-center">
-                <div className="text-lg font-bold text-blue-600">
-                  {game.statistics.totalPatients}
-                </div>
-                <div className="text-xs text-gray-600">Total</div>
-              </div>
-              <div className="bg-white p-2 rounded-lg shadow-sm border text-center">
-                <div className="text-lg font-bold text-green-600">
-                  {game.statistics.completedPatients}
-                </div>
-                <div className="text-xs text-gray-600">Done</div>
-              </div>
-              <div className="bg-white p-2 rounded-lg shadow-sm border text-center">
-                <div className="text-lg font-bold text-red-600">
-                  {game.statistics.failedPatients}
-                </div>
-                <div className="text-xs text-gray-600">Failed</div>
-              </div>
-              <div className="bg-white p-2 rounded-lg shadow-sm border text-center">
-                <div className="text-lg font-bold text-purple-600">
-                  {game.statistics.averageWaitTime.toFixed(1)}s
-                </div>
-                <div className="text-xs text-gray-600">Avg Wait</div>
-              </div>
-            </div>
-          </div>
+          {/* Statistics Dashboard */}
+          <Statistics />
         </div>
       </div>
     </div>

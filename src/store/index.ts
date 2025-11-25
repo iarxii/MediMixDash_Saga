@@ -8,10 +8,11 @@ interface Consultant {
   name: string;
   available: boolean;
   stamina: number;
-  status: 'available' | 'fetching' | 'busy' | 'closed';
+  status: 'available' | 'fetching' | 'busy' | 'closed' | 'helping';
   shiftStart: number;
   shiftEnd: number;
   currentOrder: number | null;
+  helpCooldown?: number; // Cooldown timer for help ability
 }
 
 interface Manager {
@@ -35,6 +36,7 @@ const initialCandyCrushState: {
   squareBeingDragged: Element | undefined;
   dispensed: { [med: string]: number };
   highlighted: number[];
+  autoMatched: number[];
 } = {
   board: [],
   boardSize: 8,
@@ -42,6 +44,7 @@ const initialCandyCrushState: {
   squareBeingReplaced: undefined,
   dispensed: {},
   highlighted: [],
+  autoMatched: [],
 };
 
 const candyCrushSlice = createSlice({
@@ -68,6 +71,9 @@ const candyCrushSlice = createSlice({
     setHighlighted: (state, action: PayloadAction<number[]>) => {
       state.highlighted = action.payload;
     },
+    setAutoMatched: (state, action: PayloadAction<number[]>) => {
+      state.autoMatched = action.payload;
+    },
   },
 });
 
@@ -90,6 +96,7 @@ interface GameState {
     failedPatients: number;
     averageWaitTime: number;
     totalWaitTime: number;
+    totalPatientsQueued: number;
   };
   managers: Manager[];
   currentManager: Manager | null;
@@ -120,6 +127,7 @@ const gameSlice = createSlice({
       failedPatients: 0,
       averageWaitTime: 0,
       totalWaitTime: 0,
+      totalPatientsQueued: 0,
     },
     managers: [
       {
@@ -181,14 +189,14 @@ const gameSlice = createSlice({
       state.complaints += 1;
     },
     decrementShiftTime: (state) => {
-      state.shiftTime = Math.max(0, state.shiftTime - 1);
-      state.currentTime += 1; // Increment global time by 1 second
+      state.shiftTime = Math.max(0, state.shiftTime - 4);
+      state.currentTime += 4; // Increment global time by 4 seconds
       if (state.dashPoints <= 0) {
         state.gameOver = true;
       }
     },
     updateTime: (state) => {
-      state.currentTime += 1;
+      state.currentTime += 4; // Increment by 4 seconds for faster gameplay
       // Update consultant statuses based on shift hours
       state.consultants.forEach(consultant => {
         const isBusinessHours = state.currentTime >= consultant.shiftStart && state.currentTime < consultant.shiftEnd;
@@ -247,6 +255,9 @@ const gameSlice = createSlice({
       state.statistics.totalWaitTime += action.payload.waitTime;
       state.statistics.averageWaitTime = state.statistics.totalWaitTime / state.statistics.totalPatients;
     },
+    incrementTotalQueued: (state) => {
+      state.statistics.totalPatientsQueued += 1;
+    },
     updateCurrentManager: (state) => {
       const currentHour = Math.floor(state.currentTime / 3600);
       const isDayShift = currentHour >= 7 && currentHour < 17;
@@ -271,6 +282,57 @@ const gameSlice = createSlice({
       if (manager && manager.specialAbility) {
         manager.specialAbility.unlocked = true;
       }
+    },
+    startConsultantHelp: (state, action: PayloadAction<number>) => {
+      const consultant = state.consultants.find(c => c.id === action.payload);
+      if (consultant && consultant.status === 'available') {
+        consultant.status = 'helping';
+        consultant.available = false;
+      }
+    },
+    endConsultantHelp: (state, action: PayloadAction<number>) => {
+      const consultant = state.consultants.find(c => c.id === action.payload);
+      if (consultant && consultant.status === 'helping') {
+        // Calculate helping count before changing status
+        const helpingCount = state.consultants.filter(c => c.status === 'helping').length;
+        let staminaCost = 15; // Base cost
+        
+        if (helpingCount >= 2) {
+          staminaCost = 12; // Reduced for 2+ helpers
+        }
+        if (helpingCount >= 3) {
+          staminaCost = 10; // Further reduced for 3+ helpers
+        }
+        
+        consultant.status = 'available';
+        consultant.available = true;
+        consultant.stamina = Math.max(0, consultant.stamina - staminaCost);
+        consultant.helpCooldown = 30; // 30 second cooldown
+      }
+    },
+    updateHelpCooldowns: (state) => {
+      state.consultants.forEach(consultant => {
+        if (consultant.helpCooldown && consultant.helpCooldown > 0) {
+          consultant.helpCooldown--;
+          if (consultant.helpCooldown <= 0) {
+            consultant.helpCooldown = undefined;
+          }
+        }
+      });
+    },
+    setConsultantCooldown: (state, action: PayloadAction<{ id: number; cooldown: number }>) => {
+      const consultant = state.consultants.find(c => c.id === action.payload.id);
+      if (consultant) {
+        consultant.helpCooldown = action.payload.cooldown;
+      }
+    },
+    callAllConsultantsHelp: (state) => {
+      const availableConsultants = state.consultants.filter(c => c.status === 'available' && !c.helpCooldown);
+      availableConsultants.forEach(consultant => {
+        consultant.status = 'helping';
+        consultant.available = false;
+        consultant.helpCooldown = 20; // 20 second cooldown for all-consultants help
+      });
     },
   },
 });
@@ -312,10 +374,10 @@ const patientsSlice = createSlice({
         
         if (p.moodTimer === 0 && p.status === 'waiting') {
           const moodDurations = {
-            Emergency: { calm: 5, impatient: 5, frustrated: 3, angry: 2, complaining: 1 },
-            Express: { calm: 15, impatient: 15, frustrated: 10, angry: 5, complaining: 2 },
-            Normal: { calm: 30, impatient: 30, frustrated: 20, angry: 10, complaining: 3 },
-            Priority: { calm: 8, impatient: 7, frustrated: 5, angry: 3, complaining: 1 }
+            Emergency: { calm: 10, impatient: 10, frustrated: 6, angry: 4, complaining: 2 },
+            Express: { calm: 30, impatient: 30, frustrated: 20, angry: 10, complaining: 4 },
+            Normal: { calm: 60, impatient: 60, frustrated: 40, angry: 20, complaining: 6 },
+            Priority: { calm: 16, impatient: 14, frustrated: 10, angry: 6, complaining: 2 }
           };
           
           const durations = moodDurations[p.lineType];
@@ -366,8 +428,9 @@ const patientsSlice = createSlice({
     cleanupPatients: (state, action: PayloadAction<number>) => {
       // Remove completed and failed patients
       const activePatients = state.filter(p => p.status === 'waiting' || p.status === 'dispensing');
+      const patientsAdded = Math.max(0, 3 - activePatients.length);
       // Add new patients to reach 3
-      while (activePatients.length < 3) {
+      for (let i = 0; i < patientsAdded; i++) {
         activePatients.push(generatePatient(action.payload));
       }
       return activePatients;
@@ -387,10 +450,10 @@ export const store = configureStore({
     }),
 });
 
-export const { updateBoard, moveBelow, dragDrop, dragEnd, dragStart, setDispensed, resetDispensed, setHighlighted } =
+export const { updateBoard, moveBelow, dragDrop, dragEnd, dragStart, setDispensed, resetDispensed, setHighlighted, setAutoMatched } =
   candyCrushSlice.actions;
 
-export const { addDashPoints, addCurrency, updateMorale, addCompliment, addComplaint, decrementShiftTime, updateStatistics, updateTime, assignConsultantOrder, completeConsultantOrder, updateCurrentManager, updateManagerStamina, unlockManagerAbility } =
+export const { addDashPoints, addCurrency, updateMorale, addCompliment, addComplaint, decrementShiftTime, updateStatistics, updateTime, assignConsultantOrder, completeConsultantOrder, updateCurrentManager, updateManagerStamina, unlockManagerAbility, startConsultantHelp, endConsultantHelp, updateHelpCooldowns, setConsultantCooldown, callAllConsultantsHelp, incrementTotalQueued } =
   gameSlice.actions;
 
 export const { setPatients, addPatient, updatePatient, dispenseMed, updateTimers, cleanupPatients, pinPatient } = patientsSlice.actions;

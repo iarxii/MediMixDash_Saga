@@ -69,17 +69,17 @@ export function generatePatient(currentTime: number = 7 * 60 * 60): Patient {
   }
 
   // Set maxWaitTime based on line type
-  let maxWaitTime = 60; // Normal
-  if (lineType === 'Express') maxWaitTime = 30;
-  else if (lineType === 'Priority') maxWaitTime = 15;
-  else if (lineType === 'Emergency') maxWaitTime = 10;
+  let maxWaitTime = 120; // Normal
+  if (lineType === 'Express') maxWaitTime = 60;
+  else if (lineType === 'Priority') maxWaitTime = 30;
+  else if (lineType === 'Emergency') maxWaitTime = 20;
 
   // Set initial mood state and timer
   const moodDurations = {
-    Emergency: { calm: 5, impatient: 5, frustrated: 3, angry: 2, complaining: 1 },
-    Express: { calm: 15, impatient: 15, frustrated: 10, angry: 5, complaining: 2 },
-    Normal: { calm: 30, impatient: 30, frustrated: 20, angry: 10, complaining: 3 },
-    Priority: { calm: 8, impatient: 7, frustrated: 5, angry: 3, complaining: 1 }
+    Emergency: { calm: 10, impatient: 10, frustrated: 6, angry: 4, complaining: 2 },
+    Express: { calm: 30, impatient: 30, frustrated: 20, angry: 10, complaining: 4 },
+    Normal: { calm: 60, impatient: 60, frustrated: 40, angry: 20, complaining: 6 },
+    Priority: { calm: 16, impatient: 14, frustrated: 10, angry: 6, complaining: 2 }
   };
 
   const durations = moodDurations[lineType];

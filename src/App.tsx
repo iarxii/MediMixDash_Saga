@@ -40,6 +40,10 @@ function App() {
   const [helpPopupMessage, setHelpPopupMessage] = useState<string | null>(null);
   const [helpPopupVisible, setHelpPopupVisible] = useState(false);
 
+  // Mobile UI state
+  const [showPatientsPanel, setShowPatientsPanel] = useState(false);
+  const [showStatsPanel, setShowStatsPanel] = useState(false);
+
   // Game speed: 1 real second = 4 game seconds (configurable)
 
   // Helper function to detect all matches on the board
@@ -223,9 +227,37 @@ function App() {
         </div>
       )}
       
-      <div className="grid grid-cols-1 md:grid-cols-12 h-full">
+      {/* Mobile Navigation */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-300 p-2 flex justify-around z-50">
+        <button
+          onClick={() => setShowPatientsPanel(!showPatientsPanel)}
+          className={`flex flex-col items-center p-2 rounded-lg ${showPatientsPanel ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+        >
+          <span className="text-2xl">👥</span>
+          <span className="text-xs">Patients</span>
+        </button>
+        <button
+          onClick={() => {
+            setShowPatientsPanel(false);
+            setShowStatsPanel(false);
+          }}
+          className="flex flex-col items-center p-2 rounded-lg bg-blue-500 text-white"
+        >
+          <span className="text-2xl">🏥</span>
+          <span className="text-xs">Board</span>
+        </button>
+        <button
+          onClick={() => setShowStatsPanel(!showStatsPanel)}
+          className={`flex flex-col items-center p-2 rounded-lg ${showStatsPanel ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+        >
+          <span className="text-2xl">📊</span>
+          <span className="text-xs">Stats</span>
+        </button>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-12 h-full pb-16 lg:pb-0">
         {/* Patients Waiting Area / front-desk */}
-        <div className="md:col-span-3 p-4 bg-blue-100 bg-opacity-75 flex flex-col min-h-0 max-h-screen overflow-y-auto">
+        <div className={`lg:col-span-3 p-2 lg:p-4 bg-blue-100 bg-opacity-75 flex flex-col min-h-0 max-h-screen overflow-y-auto ${showPatientsPanel ? 'block' : 'hidden lg:block'}`}>
           {/* Seating area */}
           <div className="flex flex-col h-full space-y-4">
             {/* Introduction banner */}
@@ -242,13 +274,13 @@ function App() {
             <div className="sticky top-0 z-10">
               {/* 1. Time/Clock - Shift Time */}
               <div className="bg-white p-2 rounded shadow mb-4">
-                <h3 className="text-lg font-bold text-center">Current Time</h3>
-                <p className="text-center text-xl">
+                <h3 className="text-sm lg:text-lg font-bold text-center">Current Time</h3>
+                <p className="text-center text-lg lg:text-xl">
                   {Math.floor(game.currentTime / 3600)}:
                   {Math.floor((game.currentTime % 3600) / 60).toString().padStart(2, "0")}:
                   {(game.currentTime % 60).toString().padStart(2, "0")}
                 </p>
-                {game.gameOver && <p className="text-center text-red-600 font-bold">Game Over!</p>}
+                {game.gameOver && <p className="text-center text-red-600 font-bold text-sm lg:text-base">Game Over!</p>}
               </div>
 
               {/* 2. Pharmacy Consultant Windows - 5 rows */}
@@ -502,7 +534,7 @@ function App() {
         </div>
 
         {/* main board */}
-        <div className="md:col-span-6 p-4 flex flex-col items-center justify-center min-h-0 max-h-screen overflow-y-auto">
+        <div className="lg:col-span-6 p-2 lg:p-4 flex flex-col items-center justify-center min-h-0 max-h-screen overflow-y-auto">
           {/* Pharmacy Block */}
           <Board />
 
@@ -510,8 +542,8 @@ function App() {
           <div className="w-full mb-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* 4.1 Statistics */}
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl shadow-lg border border-blue-200">
-              <h3 className="text-xl font-bold mb-3 text-blue-800 flex items-center">
-                <span className="text-2xl mr-2">📊</span>
+              <h3 className="text-lg lg:text-xl font-bold mb-3 text-blue-800 flex items-center">
+                <span className="text-xl lg:text-2xl mr-2">📊</span>
                 Pharmacy Statistics
               </h3>
               <div className="grid grid-cols-2 gap-4">
@@ -544,8 +576,8 @@ function App() {
 
             {/* 4.2 Complaints & Manager */}
             <div className="bg-gradient-to-r from-red-50 to-orange-50 p-4 rounded-xl shadow-lg border border-red-200">
-              <h3 className="text-xl font-bold mb-3 text-red-800 flex items-center">
-                <span className="text-2xl mr-2">📞</span>
+              <h3 className="text-lg lg:text-xl font-bold mb-3 text-red-800 flex items-center">
+                <span className="text-xl lg:text-2xl mr-2">📞</span>
                 Complaints & Management
               </h3>
               <div className="space-y-4">
@@ -612,7 +644,7 @@ function App() {
         </div>
 
         {/* backoffice management queue */}
-        <div className="md:col-span-3 p-4 bg-blue-100 bg-opacity-75 flex flex-col min-h-0 max-h-screen overflow-y-auto">
+        <div className={`lg:col-span-3 p-2 lg:p-4 bg-blue-100 bg-opacity-75 flex flex-col min-h-0 max-h-screen overflow-y-auto ${showStatsPanel ? 'block' : 'hidden lg:block'}`}>
           {/* Waiting list Orders */}
           {(() => {
             const currentWaiting = patients.filter(p => p.status === 'waiting').length;
@@ -665,7 +697,7 @@ function App() {
             
             return (
               <div className="bg-white p-2 rounded shadow mb-4 sticky top-0 z-10">
-                <h2 className="text-2xl font-bold text-blue-800">
+                <h2 className="text-lg lg:text-2xl font-bold text-blue-800">
                   Waiting Patients ({currentWaiting}/{totalQueued})
                 </h2>
                 <div className="text-sm text-gray-600 mt-1">

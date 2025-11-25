@@ -19,6 +19,27 @@ function Tile({ candy, candyId }: { candy: string; candyId: number }) {
     setTimeout(() => setIsPulsing(false), 300);
   };
 
+  // Touch event handlers for mobile support
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    dispatch(dragStart(e.target));
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault(); // Prevent scrolling
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
+    // For touch, we need to find the element at the touch position
+    const touch = e.changedTouches[0];
+    const elementAtPoint = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (elementAtPoint && elementAtPoint.hasAttribute('candy-id')) {
+      dispatch(dragDrop(elementAtPoint));
+    }
+    dispatch(dragEnd());
+  };
+
   // Determine tile visual state
   const isHighlighted = highlighted.includes(candyId);
   const isAutoMatched = autoMatched.includes(candyId);
@@ -36,8 +57,12 @@ function Tile({ candy, candyId }: { candy: string; candyId: number }) {
       style={{
         boxShadow: "inset 5px 5px 15px #889ffaff,inset -5px -5px 15px #aaaab7bb, 0 4px 8px rgba(0,0,0,0.15)",
         animationDelay: `${delay}s`,
+        touchAction: 'none', // Prevent default touch behaviors
       }}
       onClick={handleClick}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       {candy && (
         <img
@@ -51,6 +76,9 @@ function Tile({ candy, candyId }: { candy: string; candyId: number }) {
           onDragLeave={(e) => e.preventDefault()}
           onDrop={(e) => dispatch(dragDrop(e.target))}
           onDragEnd={() => dispatch(dragEnd())}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           candy-id={candyId}
         />
       )}

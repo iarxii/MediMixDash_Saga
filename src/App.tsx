@@ -4,7 +4,7 @@ import Board from "./components/Board";
 import Consultant from "./components/Consultant";
 import Patients from "./components/Patients";
 import Statistics from "./components/Statistics";
-import { moveBelow, updateBoard, resetDispensed, updateTime, assignConsultantOrder, addDashPoints, addComplaint, updateCurrentManager, updateHelpCooldowns, updateStatistics, addCurrency, updateMorale, addCompliment, incrementTotalQueued, setHighlighted, setConsultantCooldown, callAllConsultantsHelp, setAutoMatched, startConsultantHelp, endConsultantHelp, setPatients, dispenseMed, updateTimers, cleanupPatients, dragEnd, updatePatient, pinPatient } from "./store";
+import { moveBelow, updateBoard, resetDispensed, updateTime, assignConsultantOrder, addDashPoints, addComplaint, updateCurrentManager, updateHelpCooldowns, updateStatistics, addCurrency, updateMorale, addCompliment, incrementTotalQueued, setHighlighted, /* setConsultantCooldown, */ callAllConsultantsHelp, setAutoMatched, /* startConsultantHelp, */ endConsultantHelp, setPatients, dispenseMed, updateTimers, cleanupPatients, dragEnd, updatePatient, pinPatient } from "./store";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import { createBoard } from "./utils/createBoard";
 import { findValidMoves } from "./utils/findValidMoves";

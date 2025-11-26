@@ -47,8 +47,8 @@ function Tile({ candy, candyId }: { candy: string; candyId: number }) {
 
   return (
     <div
-      className={`h-24 w-24 flex justify-center items-center m-0.5 rounded-lg select-none tile-wave-bounce ${
-        isHighlighted ? 'tile-consultant-pulse' : ''
+      className={`w-full h-full flex justify-center items-center rounded-lg select-none tile-wave-bounce ${
+        isHighlighted && !isAutoMatched ? 'tile-consultant-pulse' : ''
       } ${
         isAutoMatched ? 'tile-auto-match' : ''
       } ${
@@ -68,7 +68,7 @@ function Tile({ candy, candyId }: { candy: string; candyId: number }) {
         <img
           src={medImages[candy]}
           alt={candy}
-          className={`h-20 w-20 tile-hover-grow ${isPulsing ? 'tile-pulse' : ''}`}
+          className={`w-full h-full object-contain tile-hover-grow ${isPulsing ? 'tile-pulse' : ''}`}
           draggable={true}
           onDragStart={(e) => dispatch(dragStart(e.target))}
           onDragOver={(e) => e.preventDefault()}

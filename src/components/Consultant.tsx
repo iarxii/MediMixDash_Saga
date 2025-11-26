@@ -158,7 +158,7 @@ function Consultant({ consultant, index }: ConsultantProps) {
       <button
         onClick={handleCallForHelp}
         disabled={consultant.status !== 'available' || !!consultant.helpCooldown}
-        className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 disabled:bg-gray-300"
+        className="px-2 py-1 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600 disabled:bg-gray-300"
       >
         {consultant.helpCooldown ? `⏳ ${consultant.helpCooldown}s` : consultant.status === 'helping' ? `🆘 Helping (${helpingCount})` : `🆘 Help (${helpingCount} active)`}
       </button>

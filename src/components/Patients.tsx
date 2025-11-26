@@ -116,7 +116,7 @@ function Patients() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mb-6">
       {/* Emergency Line */}
       <div className="bg-red-200 bg-opacity-70 p-3 rounded-lg border-2 border-red-400">
         <h3 className="text-lg font-bold mb-2 text-red-800">🚨 Emergency Line</h3>
@@ -130,7 +130,7 @@ function Patients() {
       </div>
 
       {/* Express Line */}
-      <div className="bg-green-100 bg-opacity-50 p-3 rounded-lg">
+      <div className="bg-green-100 bg-opacity-50 p-3 rounded-lg border-2 border-green-400">
         <h3 className="text-lg font-bold mb-2 text-green-700">Express Line</h3>
         <div className="overflow-x-auto pb-2 custom-scrollbar">
           <div className="flex space-x-4">
@@ -142,7 +142,7 @@ function Patients() {
       </div>
 
       {/* Normal Line */}
-      <div className="bg-blue-100 bg-opacity-50 p-3 rounded-lg">
+      <div className="bg-blue-100 bg-opacity-50 p-3 rounded-lg border-2 border-blue-400">
         <h3 className="text-lg font-bold mb-2 text-blue-700">Normal Line</h3>
         <div className="overflow-x-auto pb-2 custom-scrollbar">
           <div className="flex space-x-4">
@@ -154,7 +154,7 @@ function Patients() {
       </div>
 
       {/* Priority Line */}
-      <div className="bg-red-100 bg-opacity-50 p-3 rounded-lg">
+      <div className="bg-red-100 bg-opacity-50 p-3 rounded-lg border-2 border-red-400">
         <h3 className="text-lg font-bold mb-2 text-red-700">Priority Line</h3>
         <div className="overflow-x-auto pb-2 custom-scrollbar">
           <div className="flex space-x-4">

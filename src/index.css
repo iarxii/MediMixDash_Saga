@@ -74,7 +74,7 @@
 
 /* Tile animations */
 .tile-wave-bounce {
-  animation: waveBounce 2.5s ease-in-out infinite;
+  animation: waveBounce 3.5s ease-in-out infinite;
 }
 
 .tile-hover-grow:hover {

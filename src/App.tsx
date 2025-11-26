@@ -25,7 +25,7 @@ import {
 
 // images
 import welcomeBanner from './assets/welcome-banner.png';
-import logo from './assets/medimixdash_saga_logo_transp.png';
+import logo from './assets/medimixdash_saga_logo_dynamic_transp.png';
 
 function App() {
   const dispatch = useAppDispatch();
@@ -633,7 +633,7 @@ function App() {
                   Seating Area
                 </h3>
                 <div className="grid grid-cols-1 gap-2 h-full overflow-y-auto">
-                  {patients.map((patient, index) => (
+                  {[...patients].sort((a, b) => b.ticketNumber - a.ticketNumber).map((patient, index) => (
                     <div
                       key={patient.id}
                       className={`p-4 rounded-lg shadow cursor-pointer border-2 ${

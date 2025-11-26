@@ -6,33 +6,33 @@ import { Patient } from "../utils/patientGenerator";
 function Patients() {
   const patients = useAppSelector((state) => state.patients) as Patient[];
 
-  // Sort patients by pinned desc, then by id descending (newest first)
+  // Sort patients by pinned desc, then by ticket number descending (newest first)
   const sortedPatients = [...patients].sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
-    return b.id - a.id;
+    return b.ticketNumber - a.ticketNumber;
   });
 
-  // Group by line type and sort each group: pinned first, then by id descending (newest first)
+  // Group by line type and sort each group: pinned first, then by ticket number descending (newest first)
   const expressPatients = sortedPatients.filter(p => p.lineType === 'Express').sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
-    return b.id - a.id;
+    return b.ticketNumber - a.ticketNumber;
   });
   const normalPatients = sortedPatients.filter(p => p.lineType === 'Normal').sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
-    return b.id - a.id;
+    return b.ticketNumber - a.ticketNumber;
   });
   const priorityPatients = sortedPatients.filter(p => p.lineType === 'Priority').sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
-    return b.id - a.id;
+    return b.ticketNumber - a.ticketNumber;
   });
   const emergencyPatients = sortedPatients.filter(p => p.lineType === 'Emergency').sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
-    return b.id - a.id;
+    return b.ticketNumber - a.ticketNumber;
   });
 
   const renderPrescription = (prescription: { [med: string]: number }, dispensed: { [med: string]: number }) => {

@@ -370,51 +370,55 @@ const patientsSlice = createSlice({
         p.waitTime = Math.max(0, p.waitTime - 1);
         
         // Update mood timer and state transitions
-        p.moodTimer = Math.max(0, p.moodTimer - 1);
-        
-        if (p.moodTimer === 0 && p.status === 'waiting') {
-          const moodDurations = {
-            Emergency: { calm: 10, impatient: 10, frustrated: 6, angry: 4, complaining: 2 },
-            Express: { calm: 30, impatient: 30, frustrated: 20, angry: 10, complaining: 4 },
-            Normal: { calm: 60, impatient: 60, frustrated: 40, angry: 20, complaining: 6 },
-            Priority: { calm: 16, impatient: 14, frustrated: 10, angry: 6, complaining: 2 }
-          };
+        if (p.status === 'waiting') {
+          p.moodTimer = Math.max(0, p.moodTimer - 1);
           
-          const durations = moodDurations[p.lineType];
-          
-          if (p.moodStatus === 'calm') {
-            p.previousMoodStatus = p.moodStatus;
-            p.moodStatus = 'impatient';
-            p.moodTimer = durations.impatient;
-            p.moodStateDuration = durations.impatient;
-          } else if (p.moodStatus === 'impatient') {
-            p.previousMoodStatus = p.moodStatus;
-            p.moodStatus = 'frustrated';
-            p.moodTimer = durations.frustrated;
-            p.moodStateDuration = durations.frustrated;
-          } else if (p.moodStatus === 'frustrated') {
-            p.previousMoodStatus = p.moodStatus;
-            p.moodStatus = 'angry';
-            p.moodTimer = durations.angry;
-            p.moodStateDuration = durations.angry;
-          } else if (p.moodStatus === 'angry') {
-            p.previousMoodStatus = p.moodStatus;
-            p.moodStatus = 'complaining';
-            p.moodTimer = durations.complaining;
-            p.moodStateDuration = durations.complaining;
-          } else if (p.moodStatus === 'complaining') {
-            p.previousMoodStatus = p.moodStatus;
-            // 3% chance patient leaves instead of lodging complaint
-            if (Math.random() < 0.03) {
-              p.moodStatus = 'left';
-              p.status = 'failed';
-            } else {
-              p.moodStatus = 'complaint lodged';
+          if (p.moodTimer === 0) {
+            const moodDurations = {
+              Emergency: { calm: 10, impatient: 10, frustrated: 6, angry: 4, complaining: 2 },
+              Express: { calm: 30, impatient: 30, frustrated: 20, angry: 10, complaining: 4 },
+              Normal: { calm: 60, impatient: 60, frustrated: 40, angry: 20, complaining: 6 },
+              Priority: { calm: 16, impatient: 14, frustrated: 10, angry: 6, complaining: 2 }
+            };
+            
+            const durations = moodDurations[p.lineType];
+            
+            if (p.moodStatus === 'calm') {
+              p.previousMoodStatus = p.moodStatus;
+              p.moodStatus = 'impatient';
+              p.moodTimer = durations.impatient;
+              p.moodStateDuration = durations.impatient;
+            } else if (p.moodStatus === 'impatient') {
+              p.previousMoodStatus = p.moodStatus;
+              p.moodStatus = 'frustrated';
+              p.moodTimer = durations.frustrated;
+              p.moodStateDuration = durations.frustrated;
+            } else if (p.moodStatus === 'frustrated') {
+              p.previousMoodStatus = p.moodStatus;
+              p.moodStatus = 'angry';
+              p.moodTimer = durations.angry;
+              p.moodStateDuration = durations.angry;
+            } else if (p.moodStatus === 'angry') {
+              p.previousMoodStatus = p.moodStatus;
+              p.moodStatus = 'complaining';
+              p.moodTimer = durations.complaining;
+              p.moodStateDuration = durations.complaining;
+            } else if (p.moodStatus === 'complaining') {
+              p.previousMoodStatus = p.moodStatus;
+              // 3% chance patient leaves instead of lodging complaint
+              if (Math.random() < 0.03) {
+                p.moodStatus = 'left';
+                p.status = 'failed';
+              } else {
+                p.moodStatus = 'complaint lodged';
+                p.status = 'failed'; // Mark as failed so they get cleaned up, but complaint is still lodged
+              }
             }
           }
         }
         
-        if (p.waitTime === 0 && p.status !== 'completed') {
+        // Only fail patients if their wait time runs out and they're still waiting
+        if (p.waitTime === 0 && p.status === 'waiting') {
           p.status = 'failed';
         }
       });

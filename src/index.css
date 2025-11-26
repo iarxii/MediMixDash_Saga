@@ -2,6 +2,127 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Font faces */
+@font-face {
+  font-family: 'Chewy Bubble';
+  src: url('./assets/fonts/chewy-bubble/Chewy Bubble.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Luckiest Guy';
+  src: url('./assets/fonts/luckiest-guy/LuckiestGuy.ttf') format('truetype');
+}
+
+:root {
+  --primary-color: #f9a8d4;
+  /* accents */
+  --powder-blue: #2fdaee;
+  --light-orange: #fbbc5a;
+  --bright-pink: #fe4f90;
+  --soft-purple: #ad67d9;
+  --bright-purple: #a94ac2;
+}
+
+/* Font classes */
+.chewy-bubble-font {
+  font-family: 'Chewy Bubble', cursive;
+  font-weight: normal !important;
+}
+
+.luckiest-guy-font {
+  font-family: 'Luckiest Guy', cursive;
+  font-weight: normal !important;
+}
+
+.nav-underline {
+  position: relative;
+  text-decoration: none;
+  padding: 4px;
+}
+
+.nav-underline::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--bright-purple);
+  transition: width 0.3s ease;
+}
+
+.nav-underline:hover::after {
+  width: 100%;
+}
+
+.text-shadow-3d {
+  text-shadow:
+    1px 1px 0 rgba(0,0,0,0.65),
+    2px 2px 2px rgba(0,0,0,0.55),
+    4px 4px 6px rgba(0,0,0,0.35),
+    8px 8px 12px rgba(0,0,0,0.2);
+}
+
+.drop-shadow-3d {
+  filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.65))
+          drop-shadow(4px 4px 4px rgba(0,0,0,0.55))
+          drop-shadow(6px 6px 6px rgba(0,0,0,0.35))
+          drop-shadow(8px 8px 8px rgba(0,0,0,0.2));
+}
+
+.text-embossed {
+  text-shadow:
+    1px 1px 2px rgba(255, 255, 255, 0.8),
+   -1px -1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.text-pink-glow { 
+  text-shadow:
+    0 0 5px #f9a8d4,
+    0 0 10px #f9a8d4,
+    0 0 20px #f9a8d4,
+    0 0 40px #f9a8d4;
+}
+
+html {
+  /* background-color: var(--primary-color); */
+  background: linear-gradient(to bottom, #fff 0%, #f9a8d4 100%);
+}
+
+.logo-fun {
+  animation: logoFun 4s ease-in-out infinite;
+}
+
+@keyframes logoFun {
+  0%, 100% {
+    transform: scale(1) translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.1) translate(5px, -5px) rotate(2deg);
+  }
+  50% {
+    transform: scale(1.05) translate(0, 0) rotate(-2deg);
+  }
+  75% {
+    transform: scale(1.1) translate(-5px, 5px) rotate(1deg);
+  }
+}
+
+.elem-animation {
+  animation: ScalePulse 2s ease-in-out infinite;
+}
+
+@keyframes ScalePulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 5px rgba(255, 105, 180, 0.6));
+  }
+  50% {
+    transform: scale(1.05);
+    filter: drop-shadow(0 0 15px rgba(255, 105, 180, 0.9));
+  }
+}
+
 .med-board {
   background-color: rgba(255, 215, 245, 0.7);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);

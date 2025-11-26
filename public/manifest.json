@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "MediMixDash Saga",
+  "name": "MediMixDash Saga",
   "icons": [
     {
       "src": "favicon.ico",
@@ -8,12 +8,12 @@
       "type": "image/x-icon"
     },
     {
-      "src": "logo192.png",
+      "src": "medimixdash_saga_logo_dynamic_transp.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "logo512.png",
+      "src": "medimixdash_saga_logo_dynamic_transp.png",
       "type": "image/png",
       "sizes": "512x512"
     }

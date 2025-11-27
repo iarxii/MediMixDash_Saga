@@ -18,6 +18,7 @@ export const dragEndReducer = (
     squareBeingReplaced: Element | undefined;
     squareBeingDragged: Element | undefined;
     dispensed: { [med: string]: number };
+    comboGain: number;
   }>
 ) => {
   const newBoard = [...state.board];
@@ -79,6 +80,10 @@ export const dragEndReducer = (
       dispensed[med] = (dispensed[med] || 0) + 1;
     });
     state.dispensed = dispensed;
+    // Add combo if 4+ match
+    if (isAColumnOfFour.length > 0 || isARowOfFour.length > 0) {
+      state.comboGain = 20;
+    }
     // Remove
     allRemoved.forEach(pos => newBoard[pos] = "");
     squareBeingDragged = undefined;

@@ -37,6 +37,9 @@ const initialCandyCrushState: {
   dispensed: { [med: string]: number };
   highlighted: number[];
   autoMatched: number[];
+  comboMeter: number;
+  maxCombo: number;
+  comboGain: number;
 } = {
   board: [],
   boardSize: 8,
@@ -45,6 +48,9 @@ const initialCandyCrushState: {
   dispensed: {},
   highlighted: [],
   autoMatched: [],
+  comboMeter: 0,
+  maxCombo: 100,
+  comboGain: 0,
 };
 
 const candyCrushSlice = createSlice({
@@ -74,6 +80,15 @@ const candyCrushSlice = createSlice({
     setAutoMatched: (state, action: PayloadAction<number[]>) => {
       state.autoMatched = action.payload;
     },
+    addCombo: (state, action: PayloadAction<number>) => {
+      state.comboMeter = Math.min(state.maxCombo, state.comboMeter + action.payload);
+    },
+    resetCombo: (state) => {
+      state.comboMeter = 0;
+    },
+    setComboGain: (state, action: PayloadAction<number>) => {
+      state.comboGain = action.payload;
+    },
   },
 });
 
@@ -100,6 +115,8 @@ interface GameState {
   };
   managers: Manager[];
   currentManager: Manager | null;
+  timeFreezeActive: boolean;
+  timeFreezeEndTime: number;
 }
 
 const gameSlice = createSlice({
@@ -140,7 +157,7 @@ const gameSlice = createSlice({
           name: 'Time Freeze',
           description: 'Freeze all patient timers for 10 seconds',
           requirement: 'Complete 50 patients without complaints',
-          unlocked: false
+          unlocked: true
         }
       },
       {
@@ -171,6 +188,8 @@ const gameSlice = createSlice({
       }
     ],
     currentManager: null,
+    timeFreezeActive: false,
+    timeFreezeEndTime: 0,
   } as GameState,
   reducers: {
     addDashPoints: (state, action: PayloadAction<number>) => {
@@ -188,6 +207,13 @@ const gameSlice = createSlice({
     addComplaint: (state) => {
       state.complaints += 1;
     },
+    activateTimeFreeze: (state) => {
+      state.timeFreezeActive = true;
+      state.timeFreezeEndTime = state.currentTime + 10; // 10 seconds
+    },
+    deactivateTimeFreeze: (state) => {
+      state.timeFreezeActive = false;
+    },
     decrementShiftTime: (state) => {
       state.shiftTime = Math.max(0, state.shiftTime - 4);
       state.currentTime += 4; // Increment global time by 4 seconds
@@ -197,6 +223,10 @@ const gameSlice = createSlice({
     },
     updateTime: (state) => {
       state.currentTime += 4; // Increment by 4 seconds for faster gameplay
+      // Check time freeze
+      if (state.timeFreezeActive && state.currentTime >= state.timeFreezeEndTime) {
+        state.timeFreezeActive = false;
+      }
       // Update consultant statuses based on shift hours
       state.consultants.forEach(consultant => {
         const isBusinessHours = state.currentTime >= consultant.shiftStart && state.currentTime < consultant.shiftEnd;
@@ -454,10 +484,10 @@ export const store = configureStore({
     }),
 });
 
-export const { updateBoard, moveBelow, dragDrop, dragEnd, dragStart, setDispensed, resetDispensed, setHighlighted, setAutoMatched } =
+export const { updateBoard, moveBelow, dragDrop, dragEnd, dragStart, setDispensed, resetDispensed, setHighlighted, setAutoMatched, addCombo, resetCombo, setComboGain } =
   candyCrushSlice.actions;
 
-export const { addDashPoints, addCurrency, updateMorale, addCompliment, addComplaint, decrementShiftTime, updateStatistics, updateTime, assignConsultantOrder, completeConsultantOrder, updateCurrentManager, updateManagerStamina, unlockManagerAbility, startConsultantHelp, endConsultantHelp, updateHelpCooldowns, setConsultantCooldown, callAllConsultantsHelp, incrementTotalQueued } =
+export const { addDashPoints, addCurrency, updateMorale, addCompliment, addComplaint, decrementShiftTime, updateStatistics, updateTime, assignConsultantOrder, completeConsultantOrder, updateCurrentManager, updateManagerStamina, unlockManagerAbility, startConsultantHelp, endConsultantHelp, updateHelpCooldowns, setConsultantCooldown, callAllConsultantsHelp, incrementTotalQueued, activateTimeFreeze, deactivateTimeFreeze } =
   gameSlice.actions;
 
 export const { setPatients, addPatient, updatePatient, dispenseMed, updateTimers, cleanupPatients, pinPatient } = patientsSlice.actions;

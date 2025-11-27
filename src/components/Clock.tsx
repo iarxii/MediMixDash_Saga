@@ -116,9 +116,14 @@ const Clock: React.FC<ClockProps> = ({ currentTime, gameOver }) => {
       <div className="text-center">
         <div className="bg-gray-100 px-4 py-2 rounded-lg border-2 border-gray-300 inline-block">
           <p className="text-xl md:text-2xl font-mono font-bold text-gray-800 tabular-nums">
-            {Math.floor(currentTime / 3600).toString().padStart(2, "0")}:
-            {Math.floor((currentTime % 3600) / 60).toString().padStart(2, "0")}:
-            {(currentTime % 60).toString().padStart(2, "0")}
+            {(() => {
+              const hours24 = Math.floor(currentTime / 3600);
+              const hours12 = hours24 % 12 || 12;
+              const minutes = Math.floor((currentTime % 3600) / 60);
+              const seconds = currentTime % 60;
+              const ampm = hours24 >= 12 ? 'PM' : 'AM';
+              return `${hours12.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")} ${ampm}`;
+            })()}
           </p>
         </div>
       </div>

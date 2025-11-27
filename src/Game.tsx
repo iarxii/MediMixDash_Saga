@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import BackgroundCarousel from "./components/BackgroundCarousel";
 import Board from "./components/Board";
 import Clock from "./components/Clock";
@@ -27,8 +28,13 @@ import {
 import welcomeBanner from './assets/welcome-banner.png';
 import logo from './assets/medimixdash_saga_logo_dynamic_transp.png';
 
+// icons
+import { ReactComponent as PauseIcon } from './assets/icons/cancel-circle-svgrepo-com.svg';
+import { ReactComponent as HomeIcon } from './assets/icons/cancel-circle-svgrepo-com.svg';
+
 function Game() {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const board = useAppSelector(({ candyCrush: { board } }) => board);
   const dispensed = useAppSelector(({ candyCrush: { dispensed } }) => dispensed);
   const boardSize = useAppSelector(
@@ -36,6 +42,9 @@ function Game() {
   );
   const patients = useAppSelector((state) => state.patients);
   const game = useAppSelector((state) => state.game);
+
+  // Game pause state
+  const [paused, setPaused] = useState(false);
 
   // Add state for consultant help visual effects
   const [consultantHelpActive, setConsultantHelpActive] = useState(false);
@@ -104,6 +113,8 @@ function Game() {
 
   useEffect(() => {
     const interval = setInterval(() => {
+      if (paused) return; // Skip if paused
+      
       // Check for completed/failed patients before updating timers
       const completedPatients = patients.filter(p => p.status === 'completed');
       const failedPatients = patients.filter(p => p.status === 'failed');
@@ -145,7 +156,7 @@ function Game() {
       dispatch(updateHelpCooldowns());
     }, 1000);
     return () => clearInterval(interval);
-  }, [dispatch, game.currentTime, patients]);
+  }, [dispatch, game.currentTime, patients, paused]);
 
   // Check for mood state changes and apply penalties
   useEffect(() => {
@@ -166,6 +177,8 @@ function Game() {
   }, [patients, game.dashPoints, dispatch]);
 
   useEffect(() => {
+    if (paused) return; // Skip board updates if paused
+    
     const timeout = setTimeout(() => {
       const newBoard = [...board];
       isColumnOfFour(newBoard, boardSize, formulaForColumnOfFour(boardSize));
@@ -196,11 +209,28 @@ function Game() {
       }, 200); // Small delay to allow board to settle
     }, 150);
     return () => clearTimeout(timeout);
-  }, [board, dispatch, boardSize]);
+  }, [board, dispatch, boardSize, paused]);
 
   return (
     <div className="h-screen">
       <BackgroundCarousel />
+      
+      {/* Pause Overlay */}
+      {paused && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white p-8 rounded-lg shadow-2xl border-4 border-yellow-400 text-center">
+            <div className="text-6xl mb-4">⏸️</div>
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">Game Paused</h2>
+            <p className="text-lg text-gray-600 mb-6">Click Resume to continue playing</p>
+            <button
+              onClick={() => setPaused(false)}
+              className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200 text-xl font-bold"
+            >
+              ▶️ Resume Game
+            </button>
+          </div>
+        </div>
+      )}
       
       {/* Consultant Help Popup */}
       {helpPopupVisible && helpPopupMessage && (
@@ -243,7 +273,7 @@ function Game() {
         )}
 
         {/* Floating Action Buttons for Mobile */}
-        <div className="md:hidden fixed bottom-4 right-4 z-50 flex flex-col space-y-3">
+        <div className="md:hidden fixed top-4 right-4 z-50 flex flex-col space-y-3">
           <button
             onClick={() => setShowStatsPanel(!showStatsPanel)}
             className={`relative p-4 rounded-full shadow-2xl transform hover:scale-110 hover:-translate-y-1 active:scale-95 active:translate-y-0 transition-all duration-200 border-2 ${
@@ -786,6 +816,26 @@ function Game() {
                 </div>
               </div>
             </div>
+
+            {/* Game Control Buttons */}
+            <div className="flex-shrink-0 flex flex-col space-y-1 ml-2">
+              <button
+                onClick={() => setPaused(!paused)}
+                className="w-6 h-6 rounded-full overflow-hidden bg-purple-500 hover:bg-purple-600 text-white border border-purple-400 shadow transform hover:scale-105 transition-all duration-200 flex items-center justify-center"
+                title={paused ? 'Resume Game' : 'Pause Game'}
+              >
+                <PauseIcon className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="w-6 h-6 rounded-full overflow-hidden bg-red-500 hover:bg-red-600 text-white border border-red-400 shadow transform hover:scale-105 transition-all duration-200 flex items-center justify-center"
+                title="Exit to Home"
+              >
+                <HomeIcon className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* letsb add a game pause and exit buttons here */}
           </div>
 
           {/* Pharmacy Block */}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import poster from '../../assets/background.png';
+import poster from '../../assets/carousel-bg/cartoon-carousel-bgimg_3.png';
 import githubLogo from '../../assets/icons/github-mark-c791e9551fe4/github-mark/github-mark-white.svg';
 import FixedHeader from '../FixedHeader';
 import StickyFooter from '../StickyFooter';
@@ -27,7 +27,7 @@ const Github: React.FC = () => {
             <FixedHeader />
 
             <div className="h-full w-full display-flex flex-col justify-between items-center">
-                <div className="flex-grow h-[100px] flex flex-col justify-center items-center text-center px-4">
+                <div className="flex-grow h-[50vh] flex flex-col justify-center items-center text-center px-4">
                     {/* spacer */}
                 </div>
                 {/* Content */}

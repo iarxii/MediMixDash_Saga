@@ -33,8 +33,25 @@ const Home: React.FC = () => {
                 {/* Content */}
                 <div className="relative z-20 flex items-center justify-center h-full">
                     <div className="text-center">
-                        <h1 className="text-4xl md:text-6xl font-bold text-white px-4 mb-8 text-shadow-3d">Welcome to 
-                            <span className="chewy-bubble-font luckiest-guy-fontz text-shadow-3dz text-embossedz text-pink-glowz"><span style={{ color: 'var(--powder-blue)' }}>Medi</span><span style={{ color: 'var(--light-orange)' }}>Mix</span><span style={{ color: 'var(--bright-pink)' }}>Dash</span> <span style={{ color: 'var(--bright-purple)' }}>Saga</span></span>
+                        <h1 className="text-4xl md:text-6xl font-bold text-white px-4 mb-8 text-shadow-3d">Welcome to <br/>
+                            <span className="chewy-bubble-font text-shadow-3d">
+                                {'MediMixDash Saga'.split('').map((letter, index) => (
+                                    <span
+                                        key={index}
+                                        className="wave-letter inline-block"
+                                        style={{
+                                            animationDelay: `${index * 0.1}s`,
+                                            color: index <= 3 ? 'var(--powder-blue)' :
+                                                   index >= 4 && index <= 6 ? 'var(--light-orange)' :
+                                                   index >= 7 && index <= 10 ? 'var(--bright-pink)' :
+                                                   index >= 12 ? 'var(--bright-purple)' :
+                                                   'var(--powder-blue)'
+                                        }}
+                                    >
+                                        {letter === ' ' ? '\u00A0' : letter}
+                                    </span>
+                                ))}
+                            </span>
                         </h1>
                         <Link
                             to="/game"

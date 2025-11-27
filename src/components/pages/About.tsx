@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import poster from '../../assets/background.png';
+import poster from '../../assets/carousel-bg/cartoon-carousel-bgimg_1.png';
 import FixedHeader from '../FixedHeader';
 import StickyFooter from '../StickyFooter';
 
@@ -13,7 +13,7 @@ const About: React.FC = () => {
                 style={{
                     backgroundImage: `url(${poster})`,
                     backgroundAttachment: 'fixed',
-                    backgroundPositionY: 'bottom',
+                    backgroundPositionY: 'top',
                 }}
             />
 
@@ -26,7 +26,7 @@ const About: React.FC = () => {
             <FixedHeader />
 
             <div className="h-full w-full display-flex flex-col justify-between items-center">
-                <div className="flex-grow h-[100px] flex flex-col justify-center items-center text-center px-4">
+                <div className="flex-grow h-[50vh] flex flex-col justify-center items-center text-center px-4">
                     {/* spacer */}
                 </div>
                 {/* Content */}

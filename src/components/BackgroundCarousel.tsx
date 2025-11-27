@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 
 const images = [
-  require("../assets/carousel-bg/cartoon-carousel-bgimg (1).png"),
-  require("../assets/carousel-bg/cartoon-carousel-bgimg (2).png"),
-  require("../assets/carousel-bg/cartoon-carousel-bgimg (3).png"),
+  require("../assets/carousel-bg/cartoon-carousel-bgimg_1.png"),
+  require("../assets/carousel-bg/cartoon-carousel-bgimg_2.png"),
+  require("../assets/carousel-bg/cartoon-carousel-bgimg_3.png"),
 ];
 
 function BackgroundCarousel() {

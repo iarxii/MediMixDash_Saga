@@ -7,7 +7,8 @@ import Clock from "./components/Clock";
 import Consultant from "./components/Consultant";
 import Patients from "./components/Patients";
 import Statistics from "./components/Statistics";
-import { moveBelow, updateBoard, resetDispensed, updateTime, assignConsultantOrder, addDashPoints, addComplaint, updateCurrentManager, updateHelpCooldowns, updateStatistics, addCurrency, updateMorale, addCompliment, incrementTotalQueued, setHighlighted, /* setConsultantCooldown, */ callAllConsultantsHelp, setAutoMatched, /* startConsultantHelp, */ endConsultantHelp, setPatients, dispenseMed, updateTimers, cleanupPatients, dragEnd, updatePatient, pinPatient, addCombo, setComboGain } from "./store";
+import AnimatedPharmacyBanner from './components/AnimatedPharmacyBanner';
+import { moveBelow, updateBoard, resetDispensed, updateTime, assignConsultantOrder, addDashPoints, addComplaint, updateCurrentManager, updateHelpCooldowns, updateStatistics, addCurrency, updateMorale, addCompliment, incrementTotalQueued, setHighlighted, /* setConsultantCooldown, */ callAllConsultantsHelp, setAutoMatched, /* startConsultantHelp, */ endConsultantHelp, setPatients, dispenseMed, updateTimers, cleanupPatients, dragEnd, updatePatient, pinPatient, addCombo, setComboGain, activateTimeFreeze, activateConsultantBoost, activateEmergencyMode } from "./store";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import { createBoard } from "./utils/createBoard";
 import { findValidMoves } from "./utils/findValidMoves";
@@ -56,6 +57,17 @@ function Game() {
   // Mobile UI state
   const [showPatientsPanel, setShowPatientsPanel] = useState(false);
   const [showStatsPanel, setShowStatsPanel] = useState(false);
+
+  // Handle special ability activation
+  const handleActivate = (abilityName: string) => {
+    if (abilityName === 'Time Freeze') {
+      dispatch(activateTimeFreeze());
+    } else if (abilityName === 'Consultant Boost') {
+      dispatch(activateConsultantBoost());
+    } else if (abilityName === 'Emergency Mode') {
+      dispatch(activateEmergencyMode());
+    }
+  };
 
   // Game speed: 1 real second = 4 game seconds (configurable)
 
@@ -287,38 +299,13 @@ function Game() {
         {/* Fixed Bottom Navigation */}
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-r from-pink-100 via-purple-50 to-pink-100 border-t-2 border-pink-400 shadow-2xl md:hidden">
           <div className="flex items-center py-3 px-6">
-            {/* Pharmacy Button */}
-            <div className="flex-1 mx-1">
-              <button
-                onClick={() => setShowStatsPanel(!showStatsPanel)}
-                className={`w-full relative py-4 px-3 rounded-2xl shadow-xl transform hover:scale-105 hover:-translate-y-1 active:scale-95 active:translate-y-0 transition-all duration-300 border-2 ${showStatsPanel
-                    ? 'bg-gradient-to-br from-pink-500 to-purple-700 text-white border-pink-400 shadow-pink-500/60'
-                    : 'bg-gradient-to-br from-white to-pink-50 text-purple-600 border-pink-300 shadow-pink-400/40 hover:shadow-purple-500/60'
-                  }`}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  minHeight: "60px",
-                  boxShadow: showStatsPanel
-                    ? '0 10px 30px rgba(236, 72, 153, 0.5), 0 6px 15px rgba(236, 72, 153, 0.3), inset 0 2px 6px rgba(255, 255, 255, 0.2)'
-                    : '0 8px 25px rgba(236, 72, 153, 0.4), 0 4px 12px rgba(236, 72, 153, 0.2), inset 0 1px 3px rgba(255, 255, 255, 0.9)',
-                  fontSize: "12px"
-                }}
-              >
-                <span className="text-2xl mb-1">📊</span>
-                <span className="font-bold uppercase tracking-wider text-xs">Pharmacy</span>
-              </button>
-            </div>
-
             {/* Queue Button */}
             <div className="flex-1 mx-1">
               <button
                 onClick={() => setShowPatientsPanel(!showPatientsPanel)}
                 className={`w-full relative py-4 px-3 rounded-2xl shadow-xl transform hover:scale-105 hover:-translate-y-1 active:scale-95 active:translate-y-0 transition-all duration-300 border-2 ${showPatientsPanel
-                    ? 'bg-gradient-to-br from-pink-500 to-purple-700 text-white border-pink-400 shadow-pink-500/60'
-                    : 'bg-gradient-to-br from-white to-pink-50 text-purple-600 border-pink-300 shadow-pink-400/40 hover:shadow-purple-500/60'
+                  ? 'bg-gradient-to-br from-pink-500 to-purple-700 text-white border-pink-400 shadow-pink-500/60'
+                  : 'bg-gradient-to-br from-white to-pink-50 text-purple-600 border-pink-300 shadow-pink-400/40 hover:shadow-purple-500/60'
                   }`}
                 style={{
                   display: "flex",
@@ -333,7 +320,7 @@ function Game() {
                 }}
               >
                 <span className="text-2xl mb-1">👥</span>
-                <span className="font-bold uppercase tracking-wider text-xs">Queue</span>
+                <span className="font-bold uppercase tracking-wider text-xs">Waiting</span>
               </button>
             </div>
 
@@ -479,12 +466,12 @@ function Game() {
                         }
                       }}
                       className={`w-full relative py-4 px-3 rounded-2xl shadow-xl transform hover:scale-105 hover:-translate-y-1 active:scale-95 active:translate-y-0 transition-all duration-300 border-2 flex flex-col items-center justify-center ${consultantHelpActive
-                          ? 'bg-gradient-to-br from-green-500 to-green-700 text-white border-green-400 shadow-green-500/60 animate-pulse'
-                          : hasCooldown
-                            ? 'bg-gradient-to-br from-gray-400 to-gray-600 text-gray-200 border-gray-500 cursor-not-allowed'
-                            : availableConsultants.length === 0
-                              ? 'bg-gradient-to-br from-red-400 to-red-600 text-white border-red-500 cursor-not-allowed'
-                              : 'bg-gradient-to-br from-blue-500 to-purple-600 text-white border-blue-400 shadow-blue-500/60 hover:shadow-purple-500/60'
+                        ? 'bg-gradient-to-br from-green-500 to-green-700 text-white border-green-400 shadow-green-500/60 animate-pulse'
+                        : hasCooldown
+                          ? 'bg-gradient-to-br from-gray-400 to-gray-600 text-gray-200 border-gray-500 cursor-not-allowed'
+                          : availableConsultants.length === 0
+                            ? 'bg-gradient-to-br from-red-400 to-red-600 text-white border-red-500 cursor-not-allowed'
+                            : 'bg-gradient-to-br from-blue-500 to-purple-600 text-white border-blue-400 shadow-blue-500/60 hover:shadow-purple-500/60'
                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                       disabled={availableConsultants.length === 0 || hasCooldown}
                       style={{
@@ -508,6 +495,34 @@ function Game() {
                 );
               })()}
             </div>
+
+
+
+            {/* Pharmacy Button */}
+            <div className="flex-1 mx-1">
+              <button
+                onClick={() => setShowStatsPanel(!showStatsPanel)}
+                className={`w-full relative py-4 px-3 rounded-2xl shadow-xl transform hover:scale-105 hover:-translate-y-1 active:scale-95 active:translate-y-0 transition-all duration-300 border-2 ${showStatsPanel
+                  ? 'bg-gradient-to-br from-pink-500 to-purple-700 text-white border-pink-400 shadow-pink-500/60'
+                  : 'bg-gradient-to-br from-white to-pink-50 text-purple-600 border-pink-300 shadow-pink-400/40 hover:shadow-purple-500/60'
+                  }`}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: "60px",
+                  boxShadow: showStatsPanel
+                    ? '0 10px 30px rgba(236, 72, 153, 0.5), 0 6px 15px rgba(236, 72, 153, 0.3), inset 0 2px 6px rgba(255, 255, 255, 0.2)'
+                    : '0 8px 25px rgba(236, 72, 153, 0.4), 0 4px 12px rgba(236, 72, 153, 0.2), inset 0 1px 3px rgba(255, 255, 255, 0.9)',
+                  fontSize: "12px"
+                }}
+              >
+                <span className="text-2xl mb-1">📊</span>
+                <span className="font-bold uppercase tracking-wider text-xs">Pharmacy</span>
+              </button>
+            </div>
+
           </div>
         </div>
 
@@ -520,8 +535,8 @@ function Game() {
             <div className="bg-gradient-to-r from-pink-50 to-purple-50 border-b border-pink-200 p-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
               <div className="flex items-center space-x-3">
                 <img src={logo} alt="MediMix logo" className="w-10 h-10 rounded-lg object-contain shadow-sm" />
-                <div>
-                  <h2 className="text-xl font-bold text-purple-800">MediMix Pharmacy</h2>
+                <div className="text-center">
+                  <h2 className="text-xl font-bold text-purple-800">MediMixDash Saga</h2>
                   <p className="text-sm text-purple-600">Welcome to your dashboard</p>
                 </div>
               </div>
@@ -535,14 +550,13 @@ function Game() {
             {/* Seating area */}
             <div className="flex flex-col h-full space-y-4 p-2">
               {/* Introduction banner */}
-              <div className="bg-white p-2 rounded-lg shadow-lg display-flex items-center space-x-3 sticky top-0 z-10">
+              <div className="bg-gradient-to-br from-pink-50 to-purple-50 p-2 rounded-lg shadow-lg display-flex items-center space-x-3 sticky top-0 z-10">
                 <img
                   src={welcomeBanner}
                   alt="Welcome Banner"
                   className="w-full h-auto rounded"
                 />
-                {/* 1. Time/Clock - Shift Time */}
-                <Clock currentTime={game.currentTime} gameOver={game.gameOver} />
+
                 {/* <h2 className="text-xl font-bold text-center text-blue-800">Welcome to MediMixDash Saga</h2>
                 <p className="text-center text-sm text-gray-600">Manage your pharmacy efficiently and keep your patients happy!</p> */}
               </div>
@@ -550,6 +564,16 @@ function Game() {
               <div className="sticky-top top-0 z-20 shadow-lg">
                 {/* 2. Pharmacy Consultant Windows - 5 rows */}
                 <div className="flex-1 bg-gradient-to-br from-pink-50 to-purple-50 p-4 rounded-xl shadow-lg border border-pink-200 overflow-y-auto min-h-[360px] backdrop-blur-sm">
+                  {/* <h2 className="text-xl font-bold text-purple-800 text-center chewy-bubble-fontz luckiest-guy-font">Welcome to the</h2> */}
+                  <AnimatedPharmacyBanner />
+
+                  <hr className="my-4" />
+
+                  {/* 1. Time/Clock - Shift Time */}
+                  <Clock currentTime={game.currentTime} gameOver={game.gameOver} />
+
+                  <hr className="my-4" />
+
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-lg font-bold text-purple-800 flex items-center">
                       <span className="text-xl mr-2">👨‍⚕️</span>
@@ -663,8 +687,8 @@ function Game() {
                         }
                       }}
                       className={`font-bold py-2 px-4 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200 ${consultantHelpActive
-                          ? 'bg-green-500 hover:bg-green-600 text-white animate-pulse'
-                          : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
+                        ? 'bg-green-500 hover:bg-green-600 text-white animate-pulse'
+                        : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                       style={{ fontSize: '10px' }}
                       disabled={game.consultants.filter(c => c.status === 'available' && !c.helpCooldown).length === 0}
@@ -725,10 +749,10 @@ function Game() {
                         </span>
                         <span
                           className={`text-sm ${patient.moodStatus === "calm"
-                              ? "text-green-600"
-                              : patient.moodStatus === "impatient"
-                                ? "text-yellow-600"
-                                : "text-red-600"
+                            ? "text-green-600"
+                            : patient.moodStatus === "impatient"
+                              ? "text-yellow-600"
+                              : "text-red-600"
                             }`}
                         >
                           {patient.moodStatus === "calm"
@@ -746,12 +770,12 @@ function Game() {
                         </span>
                         <span
                           className={`px-2 py-1 text-xs rounded-full ${patient.status === "completed"
-                              ? "bg-green-100 text-green-800"
-                              : patient.status === "failed"
-                                ? "bg-red-100 text-red-800"
-                                : patient.status === "dispensing"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-blue-100 text-blue-800"
+                            ? "bg-green-100 text-green-800"
+                            : patient.status === "failed"
+                              ? "bg-red-100 text-red-800"
+                              : patient.status === "dispensing"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-blue-100 text-blue-800"
                             }`}
                         >
                           {patient.status}
@@ -777,10 +801,10 @@ function Game() {
                       <div className="w-full bg-gray-200 rounded-full h-3">
                         <div
                           className={`h-3 rounded-full transition-all duration-1000 ${patient.waitTime > 10
-                              ? "bg-green-500"
-                              : patient.waitTime > 5
-                                ? "bg-yellow-500"
-                                : "bg-red-500"
+                            ? "bg-green-500"
+                            : patient.waitTime > 5
+                              ? "bg-yellow-500"
+                              : "bg-red-500"
                             }`}
                           style={{
                             width: `${(patient.waitTime / patient.maxWaitTime) * 100
@@ -808,7 +832,7 @@ function Game() {
               <img
                 src={logo}
                 alt="MediMixDash Saga logo"
-                className="h-16 w-auto md:h-20 lg:h-24"
+                className="h-16 w-auto md:h-20 lg:h-24 logo-fun"
               />
             </div>
 
@@ -820,8 +844,8 @@ function Game() {
                   <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Dash Points</p>
                 </div>
                 <div className="bg-white bg-opacity-80 p-3 rounded-lg shadow-sm border border-purple-300 min-w-[100px]" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <p className="text-2xl md:text-3xl font-bold text-green-600">${game.currency.toLocaleString()}</p>
-                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Currency</p>
+                  <p className="text-2xl md:text-3xl font-bold text-green-600">🪙{game.currency.toLocaleString()}</p>
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">MediCred</p>
                 </div>
               </div>
             </div>
@@ -902,47 +926,54 @@ function Game() {
                 Complaints & Management
               </h3>
               <div className="space-y-4">
-                {/* Current Manager */}
-                <div className="bg-white p-3 rounded-lg shadow-sm border">
-                  {game.currentManager ? (() => {
-                    const manager = game.currentManager!;
-                    return (
-                      <>
-                        <div className="flex items-center space-x-3">
-                          <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-xl font-bold">
-                            {manager.name.charAt(0)}
+                {/* Managers on Duty */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {game.managers.map(manager => (
+                    <div key={manager.id} className="display-grid bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl shadow-lg border-2 border-blue-300 transform hover:scale-105 transition-all duration-300 relative">
+                      <div className="flex items-center space-x-4 mb-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg">
+                          {manager.name.charAt(0)}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-bold text-gray-800 text-lg">{manager.name}</div>
+                          <div className="text-sm text-gray-600 font-medium">{manager.role}</div>
+                        </div>
+                      </div>
+                      {game.currentManager?.id === manager.id && (
+                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-green-600 text-sm font-bold bg-green-100 px-2 py-1 rounded-full border border-green-600">ON DUTY</div>
+                      )}
+                      <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+                        <div
+                          className="bg-gradient-to-r from-green-400 to-blue-500 h-3 rounded-full transition-all duration-300"
+                          style={{ width: `${manager.stamina}%` }}
+                        ></div>
+                      </div>
+                      <div className="text-xs text-gray-500 mb-3">Stamina: {manager.stamina}%</div>
+
+                      {/* Manager Special Ability */}
+                      {manager.specialAbility && (
+                        <div className="p-3 bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg border border-yellow-300 shadow-sm">
+                          <div className="text-sm font-semibold text-yellow-800 flex items-center mb-1">
+                            <span className="text-lg mr-2">🎯</span>
+                            {manager.specialAbility.name}
                           </div>
-                          <div className="flex-1">
-                            <div className="font-semibold text-gray-800">{manager.name}</div>
-                            <div className="text-sm text-gray-600">{manager.role}</div>
-                            <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                              <div
-                                className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${manager.stamina}%` }}
-                              ></div>
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1">Stamina: {manager.stamina}%</div>
+                          <div className="text-xs text-yellow-700 mb-2">{manager.specialAbility.description}</div>
+                          <div className="text-xs text-gray-600">
+                            {manager.specialAbility.unlocked ? (
+                              <button
+                                onClick={() => handleActivate(manager.specialAbility!.name)}
+                                className="w-full text-xs bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg transition-colors font-semibold shadow"
+                              >
+                                Activate
+                              </button>
+                            ) : (
+                              `Requirement: ${manager.specialAbility.requirement}`
+                            )}
                           </div>
                         </div>
-
-                        {/* Manager Special Ability */}
-                        {manager.specialAbility && manager.specialAbility.unlocked && (
-                          <div className="mt-3 p-2 bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg border border-yellow-300">
-                            <div className="text-sm font-semibold text-yellow-800">🎯 Special Ability</div>
-                            <div className="text-xs text-yellow-700">{manager.specialAbility.description}</div>
-                            <div className="text-xs text-gray-600 mt-1">
-                              Unlocked at: {manager.specialAbility.requirement}
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    );
-                  })() : (
-                    <div className="text-center text-gray-500 py-4">
-                      <div className="text-lg">👨‍💼</div>
-                      <div className="text-sm">No manager on duty</div>
+                      )}
                     </div>
-                  )}
+                  ))}
                 </div>
 
                 {/* Complaints Stats */}
@@ -964,7 +995,7 @@ function Game() {
           </div>
         </div>
 
-        {/* Stats Panel Overlay */}
+        {/* Back-Office Stats Panel Overlay */}
         <div className={`fixed inset-y-0 right-0 z-40 transform transition-transform duration-300 ease-in-out md:translate-x-0 ${showStatsPanel ? 'translate-x-0' : 'md:translate-x-0 translate-x-full'
           } ${showStatsPanel ? 'w-full md:w-1/4' : 'md:w-1/4 w-0'}`}>
           <div className="h-full bg-blue-100 bg-opacity-75 flex flex-col min-h-0 max-h-screen overflow-y-auto">
@@ -979,7 +1010,7 @@ function Game() {
               </div>
               <button
                 onClick={() => setShowStatsPanel(false)}
-                className="md:hidden p-3 hover:bg-blue-100 rounded-xl transition-colors duration-200 shadow-sm"
+                className="p-3 hover:bg-blue-100 rounded-xl transition-colors duration-200 shadow-sm"
               >
                 <span className="text-2xl text-blue-600">✕</span>
               </button>

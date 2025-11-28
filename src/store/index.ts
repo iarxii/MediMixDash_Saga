@@ -117,6 +117,10 @@ interface GameState {
   currentManager: Manager | null;
   timeFreezeActive: boolean;
   timeFreezeEndTime: number;
+  consultantBoostActive: boolean;
+  consultantBoostEndTime: number;
+  emergencyModeActive: boolean;
+  emergencyModeEndTime: number;
 }
 
 const gameSlice = createSlice({
@@ -190,6 +194,10 @@ const gameSlice = createSlice({
     currentManager: null,
     timeFreezeActive: false,
     timeFreezeEndTime: 0,
+    consultantBoostActive: false,
+    consultantBoostEndTime: 0,
+    emergencyModeActive: false,
+    emergencyModeEndTime: 0,
   } as GameState,
   reducers: {
     addDashPoints: (state, action: PayloadAction<number>) => {
@@ -209,10 +217,24 @@ const gameSlice = createSlice({
     },
     activateTimeFreeze: (state) => {
       state.timeFreezeActive = true;
-      state.timeFreezeEndTime = state.currentTime + 10; // 10 seconds
+      state.timeFreezeEndTime = state.currentTime + 10 * 31; // 10 seconds
     },
     deactivateTimeFreeze: (state) => {
       state.timeFreezeActive = false;
+    },
+    activateConsultantBoost: (state) => {
+      state.consultantBoostActive = true;
+      state.consultantBoostEndTime = state.currentTime + 30 * 31; // 30 seconds
+    },
+    deactivateConsultantBoost: (state) => {
+      state.consultantBoostActive = false;
+    },
+    activateEmergencyMode: (state) => {
+      state.emergencyModeActive = true;
+      state.emergencyModeEndTime = state.currentTime + 60 * 31; // 60 seconds or indefinite?
+    },
+    deactivateEmergencyMode: (state) => {
+      state.emergencyModeActive = false;
     },
     decrementShiftTime: (state) => {
       state.shiftTime = Math.max(0, state.shiftTime - 4);
@@ -222,10 +244,16 @@ const gameSlice = createSlice({
       }
     },
     updateTime: (state) => {
-      state.currentTime += 4; // Increment by 4 seconds for faster gameplay
-      // Check time freeze
+      state.currentTime += 124; // 1 real sec = 2 min 4 sec game time
+      // Check ability end times
       if (state.timeFreezeActive && state.currentTime >= state.timeFreezeEndTime) {
         state.timeFreezeActive = false;
+      }
+      if (state.consultantBoostActive && state.currentTime >= state.consultantBoostEndTime) {
+        state.consultantBoostActive = false;
+      }
+      if (state.emergencyModeActive && state.currentTime >= state.emergencyModeEndTime) {
+        state.emergencyModeActive = false;
       }
       // Update consultant statuses based on shift hours
       state.consultants.forEach(consultant => {
@@ -337,13 +365,13 @@ const gameSlice = createSlice({
         consultant.status = 'available';
         consultant.available = true;
         consultant.stamina = Math.max(0, consultant.stamina - staminaCost);
-        consultant.helpCooldown = 30; // 30 second cooldown
+        consultant.helpCooldown = 30 * 31; // 30 second cooldown
       }
     },
     updateHelpCooldowns: (state) => {
       state.consultants.forEach(consultant => {
         if (consultant.helpCooldown && consultant.helpCooldown > 0) {
-          consultant.helpCooldown--;
+          consultant.helpCooldown -= 124;
           if (consultant.helpCooldown <= 0) {
             consultant.helpCooldown = undefined;
           }
@@ -397,18 +425,18 @@ const patientsSlice = createSlice({
     },
     updateTimers: (state) => {
       state.forEach(p => {
-        p.waitTime = Math.max(0, p.waitTime - 1);
+        p.waitTime = Math.max(0, p.waitTime - 124);
         
         // Update mood timer and state transitions
         if (p.status === 'waiting') {
-          p.moodTimer = Math.max(0, p.moodTimer - 1);
+          p.moodTimer = Math.max(0, p.moodTimer - 124);
           
           if (p.moodTimer === 0) {
             const moodDurations = {
-              Emergency: { calm: 10, impatient: 10, frustrated: 6, angry: 4, complaining: 2 },
-              Express: { calm: 30, impatient: 30, frustrated: 20, angry: 10, complaining: 4 },
-              Normal: { calm: 60, impatient: 60, frustrated: 40, angry: 20, complaining: 6 },
-              Priority: { calm: 16, impatient: 14, frustrated: 10, angry: 6, complaining: 2 }
+              Emergency: { calm: 10 * 31, impatient: 10 * 31, frustrated: 6 * 31, angry: 4 * 31, complaining: 2 * 31 },
+              Express: { calm: 30 * 31, impatient: 30 * 31, frustrated: 20 * 31, angry: 10 * 31, complaining: 4 * 31 },
+              Normal: { calm: 60 * 31, impatient: 60 * 31, frustrated: 40 * 31, angry: 20 * 31, complaining: 6 * 31 },
+              Priority: { calm: 16 * 31, impatient: 14 * 31, frustrated: 10 * 31, angry: 6 * 31, complaining: 2 * 31 }
             };
             
             const durations = moodDurations[p.lineType];
@@ -487,7 +515,7 @@ export const store = configureStore({
 export const { updateBoard, moveBelow, dragDrop, dragEnd, dragStart, setDispensed, resetDispensed, setHighlighted, setAutoMatched, addCombo, resetCombo, setComboGain } =
   candyCrushSlice.actions;
 
-export const { addDashPoints, addCurrency, updateMorale, addCompliment, addComplaint, decrementShiftTime, updateStatistics, updateTime, assignConsultantOrder, completeConsultantOrder, updateCurrentManager, updateManagerStamina, unlockManagerAbility, startConsultantHelp, endConsultantHelp, updateHelpCooldowns, setConsultantCooldown, callAllConsultantsHelp, incrementTotalQueued, activateTimeFreeze, deactivateTimeFreeze } =
+export const { addDashPoints, addCurrency, updateMorale, addCompliment, addComplaint, decrementShiftTime, updateStatistics, updateTime, assignConsultantOrder, completeConsultantOrder, updateCurrentManager, updateManagerStamina, unlockManagerAbility, startConsultantHelp, endConsultantHelp, updateHelpCooldowns, setConsultantCooldown, callAllConsultantsHelp, incrementTotalQueued, activateTimeFreeze, deactivateTimeFreeze, activateConsultantBoost, deactivateConsultantBoost, activateEmergencyMode, deactivateEmergencyMode } =
   gameSlice.actions;
 
 export const { setPatients, addPatient, updatePatient, dispenseMed, updateTimers, cleanupPatients, pinPatient } = patientsSlice.actions;

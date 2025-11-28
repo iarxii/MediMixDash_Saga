@@ -27,8 +27,8 @@ function Statistics() {
               <div className="text-2xl font-bold text-green-600">{game.dashPoints}</div>
             </div>
             <div className="text-right">
-              <div className="text-sm text-gray-600">Currency</div>
-              <div className="text-xl font-bold text-blue-600">${game.currency}</div>
+              <div className="text-sm text-gray-600">MediCred</div>
+              <div className="text-xl font-bold text-blue-600">🪙{game.currency}</div>
             </div>
           </div>
         </div>

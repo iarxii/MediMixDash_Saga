@@ -8,8 +8,8 @@ function Board() {
     ({ candyCrush: { boardSize } }) => boardSize
   );
   return (
-    <div className="flex flex-col lg:flex-row items-center lg:items-start space-y-4 lg:space-y-0 lg:space-x-4">
-      <div className="med-board mb-4 border-2 border-pink-400 rounded-lg p-2 bg-white shadow-md">
+    <div className="flex flex-col lg:flex-row items-center justify-center lg:items-start space-y-4 lg:space-y-0 lg:space-x-4 mb-4">
+      <div className="med-board mb-4z border-2 border-pink-400 rounded-lg p-2 bg-white shadow-md">
         <div
         className="w-full max-h-[80vh] rounded-lg"
         style={{

@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --primary-color: #f9a8d4;
+  /* accents */
+  --powder-blue: #2fdaee;
+  --light-orange: #fbbc5a;
+  --bright-pink: #fe4f90;
+  --soft-purple: #ad67d9;
+  --bright-purple: #a94ac2;
+}
+
 /* Font faces */
 @font-face {
   font-family: 'Chewy Bubble';
@@ -13,14 +23,21 @@
   src: url('./assets/fonts/luckiest-guy/LuckiestGuy.ttf') format('truetype');
 }
 
-:root {
-  --primary-color: #f9a8d4;
-  /* accents */
-  --powder-blue: #2fdaee;
-  --light-orange: #fbbc5a;
-  --bright-pink: #fe4f90;
-  --soft-purple: #ad67d9;
-  --bright-purple: #a94ac2;
+html {
+  /* background-color: var(--primary-color); */
+  background: linear-gradient(to bottom, #fff 0%, #f9a8d4 100%);
+}
+
+body {
+  font-family: 'Poppins', sans-serif !important;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Chewy Bubble', cursive;
+  font-weight: 300 !important;
 }
 
 /* Font classes */
@@ -95,11 +112,6 @@
     0 0 10px #f9a8d4,
     0 0 20px #f9a8d4,
     0 0 40px #f9a8d4;
-}
-
-html {
-  /* background-color: var(--primary-color); */
-  background: linear-gradient(to bottom, #fff 0%, #f9a8d4 100%);
 }
 
 .logo-fun {

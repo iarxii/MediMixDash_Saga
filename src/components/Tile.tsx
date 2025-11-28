@@ -68,7 +68,7 @@ function Tile({ candy, candyId }: { candy: string; candyId: number }) {
         <img
           src={medImages[candy]}
           alt={candy}
-          className={`rounded-md w-full h-full object-contain tile-hover-grow ${isPulsing ? 'tile-pulse' : ''}`}
+          className={`rounded-lg w-full h-full object-contain tile-hover-grow ${isPulsing ? 'tile-pulse' : ''}`}
           draggable={true}
           onDragStart={(e) => dispatch(dragStart(e.target))}
           onDragOver={(e) => e.preventDefault()}

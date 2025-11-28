@@ -15,7 +15,6 @@ const FixedHeader: React.FC = () => {
                 <div className="max-w-7xl mx-auto flex items-top justify-between px-4">
                     <Link to="/"><img src={logo} alt="MediMixDash Saga Logo" className="h-30 md:h-40 logo-fun" /></Link>
                     <div className="flex items-top">
-                        <MiniPlayer onOpenFull={() => setIsMediaPlayerOpen(true)} />
                         <button
                             onClick={() => setIsOpen(!isOpen)}
                             className="md:hidden text-pink-500 font-bold p-2 border-2 border-pink-500 rounded-lg bg-pink-300 hover:bg-pink-500 hover:text-white transition-colors mr-2 z-20"
@@ -40,6 +39,12 @@ const FixedHeader: React.FC = () => {
                     </div>
                 </div>
             </header>
+
+            {/* Floating Mini Player */}
+            <div className="fixed bottom-10 right-10 z-50">
+                <MiniPlayer onOpenFull={() => setIsMediaPlayerOpen(true)} />
+            </div>
+
             <MediaPlayer isOpen={isMediaPlayerOpen} onClose={() => setIsMediaPlayerOpen(false)} />
         </>
     );

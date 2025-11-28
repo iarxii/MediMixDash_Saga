@@ -13,7 +13,8 @@ const MediaPlayer: React.FC<MediaPlayerProps> = ({ isOpen, onClose }) => {
         globalVolume, setGlobalVolume,
         musicEnabled, setMusicEnabled,
         sfxEnabled, setSfxEnabled,
-        currentMusic, isPlaying, playMusic, pauseMusic
+        currentMusic, isPlaying, playMusic, pauseMusic,
+        playNextMusic, playPrevMusic
     } = useSound();
 
     if (!isOpen) return null;
@@ -54,7 +55,16 @@ const MediaPlayer: React.FC<MediaPlayerProps> = ({ isOpen, onClose }) => {
                                     {currentMusic || "No Track Selected"}
                                 </div>
                             </div>
-                            <div className="flex justify-center">
+                            <div className="flex justify-center items-center space-x-4">
+                                <button
+                                    onClick={playPrevMusic}
+                                    className="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:text-pink-500 hover:bg-pink-50 transition-colors"
+                                    title="Previous Track"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                </button>
                                 <button
                                     onClick={isPlaying ? pauseMusic : playMusic}
                                     className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-lg transition-transform transform hover:scale-105 ${isPlaying ? 'bg-pink-500' : 'bg-green-500'
@@ -65,6 +75,15 @@ const MediaPlayer: React.FC<MediaPlayerProps> = ({ isOpen, onClose }) => {
                                     ) : (
                                         <span className="text-2xl font-bold ml-1">▶</span>
                                     )}
+                                </button>
+                                <button
+                                    onClick={playNextMusic}
+                                    className="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:text-pink-500 hover:bg-pink-50 transition-colors"
+                                    title="Next Track"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
                                 </button>
                             </div>
                         </div>

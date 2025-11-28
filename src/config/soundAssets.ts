@@ -7,8 +7,6 @@ import eightBit from '../assets/music/fun-with-my-8-bit-game-301278.mp3';
 import gameLoop2 from '../assets/music/game-music-loop-2-144037.mp3';
 import happyRunner from '../assets/music/happy-runner-fast-paced-kids-game-music-loop-248099.mp3';
 import marimba from '../assets/music/marimba-tropical-african-travel-game-197517.mp3';
-import disappointed from '../assets/music/oh-come-on-very-disappointed-guy-288222.mp3';
-
 export const MUSIC_TRACKS: Record<string, string> = {
     'Neon Pulse': neonPulse,
     'Game Console': gameConsole,
@@ -19,7 +17,6 @@ export const MUSIC_TRACKS: Record<string, string> = {
     'Game Loop 2': gameLoop2,
     'Happy Runner': happyRunner,
     'Marimba': marimba,
-    'Disappointed': disappointed,
 };
 
 export const SFX_TRACKS: Record<string, string> = {

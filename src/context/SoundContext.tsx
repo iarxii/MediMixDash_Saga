@@ -14,6 +14,8 @@ interface SoundContextType {
     isPlaying: boolean;
     playMusic: () => void;
     pauseMusic: () => void;
+    playNextMusic: () => void;
+    playPrevMusic: () => void;
     playSFX: (sfxName: string) => void;
 }
 
@@ -31,7 +33,7 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // State
     const [globalVolume, setGlobalVolume] = useState<number>(() => {
         const saved = localStorage.getItem('sound_globalVolume');
-        return saved ? parseFloat(saved) : 0.5;
+        return saved ? parseFloat(saved) : 0.8; // Default 80%
     });
     const [musicEnabled, setMusicEnabled] = useState<boolean>(() => {
         const saved = localStorage.getItem('sound_musicEnabled');
@@ -45,12 +47,12 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const saved = localStorage.getItem('sound_trackVolumes');
         return saved ? JSON.parse(saved) : {};
     });
-    const [currentMusic, setCurrentMusic] = useState<string | null>(null);
-    const [isPlaying, setIsPlaying] = useState<boolean>(false);
+    const [currentMusic, setCurrentMusic] = useState<string | null>('Fun Game');
+    const [isPlaying, setIsPlaying] = useState<boolean>(true);
 
     // Refs for audio objects
     const musicAudioRef = useRef<HTMLAudioElement | null>(null);
-    const sfxAudioRefs = useRef<Record<string, HTMLAudioElement>>({});
+    const fadeIntervalRef = useRef<NodeJS.Timer | null>(null);
 
     // Persistence
     useEffect(() => {
@@ -92,15 +94,40 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setCurrentMusic(nextTrack);
     }, [currentMusic]);
 
+    const playNextMusic = useCallback(() => {
+        const tracks = Object.keys(MUSIC_TRACKS);
+        if (tracks.length === 0) return;
+        const currentIndex = currentMusic ? tracks.indexOf(currentMusic) : -1;
+        const nextIndex = (currentIndex + 1) % tracks.length;
+        setCurrentMusic(tracks[nextIndex]);
+    }, [currentMusic]);
+
+    const playPrevMusic = useCallback(() => {
+        const tracks = Object.keys(MUSIC_TRACKS);
+        if (tracks.length === 0) return;
+        const currentIndex = currentMusic ? tracks.indexOf(currentMusic) : -1;
+        const prevIndex = (currentIndex - 1 + tracks.length) % tracks.length;
+        setCurrentMusic(tracks[prevIndex]);
+    }, [currentMusic]);
+
     const playMusic = useCallback(() => {
         if (!musicEnabled) return;
         if (!currentMusic) {
             playNextRandomMusic();
         } else if (musicAudioRef.current) {
-            musicAudioRef.current.play().catch(e => console.warn("Audio play failed:", e));
-            setIsPlaying(true);
+            // Fade in if paused
+            const targetVol = getEffectiveVolume(currentMusic, true);
+            musicAudioRef.current.play()
+                .then(() => setIsPlaying(true))
+                .catch(e => {
+                    console.warn("Audio play failed:", e);
+                    setIsPlaying(false);
+                });
+
+            // Simple fade in from current volume
+            // Note: complex crossfade is handled in the effect when track changes
         }
-    }, [musicEnabled, currentMusic, playNextRandomMusic]);
+    }, [musicEnabled, currentMusic, playNextRandomMusic, getEffectiveVolume]);
 
     const pauseMusic = useCallback(() => {
         if (musicAudioRef.current) {
@@ -109,7 +136,7 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
     }, []);
 
-    // Effect to handle music track changes and playback
+    // Effect to handle music track changes and playback with crossfade
     useEffect(() => {
         if (!currentMusic || !musicEnabled) {
             if (musicAudioRef.current) {
@@ -123,40 +150,87 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const src = MUSIC_TRACKS[currentMusic];
         if (!src) return;
 
+        const targetVolume = getEffectiveVolume(currentMusic, true);
+
         // If we already have an audio object for this track, just ensure it's playing
-        // But here we switch tracks, so we likely need a new audio object or update src
         if (musicAudioRef.current && musicAudioRef.current.src.endsWith(src.split('/').pop()!)) {
-            // Same track, update volume
-            musicAudioRef.current.volume = getEffectiveVolume(currentMusic, true);
+            musicAudioRef.current.volume = targetVolume;
             if (!isPlaying) {
-                musicAudioRef.current.play().catch(e => console.warn("Audio play failed:", e));
-                setIsPlaying(true);
+                musicAudioRef.current.play()
+                    .then(() => setIsPlaying(true))
+                    .catch(e => {
+                        console.warn("Audio play failed:", e);
+                        setIsPlaying(false);
+                    });
             }
             return;
         }
 
-        // New track
-        if (musicAudioRef.current) {
-            musicAudioRef.current.pause();
-        }
+        // Crossfade Logic
+        const prevAudio = musicAudioRef.current;
+        const newAudio = new Audio(src);
 
-        const audio = new Audio(src);
-        audio.volume = getEffectiveVolume(currentMusic, true);
-        audio.onended = () => {
+        // Start new audio at 0 volume
+        newAudio.volume = 0;
+        newAudio.onended = () => {
             playNextRandomMusic();
         };
 
-        musicAudioRef.current = audio;
-        audio.play().then(() => setIsPlaying(true)).catch(e => console.warn("Audio play failed:", e));
+        musicAudioRef.current = newAudio;
+        newAudio.play()
+            .then(() => setIsPlaying(true))
+            .catch(e => {
+                console.warn("Audio play failed:", e);
+                setIsPlaying(false);
+            });
+
+        // Fade out previous, Fade in new
+        const fadeDuration = 1000; // 1 second
+        const steps = 20;
+        const intervalTime = fadeDuration / steps;
+        const volStep = targetVolume / steps;
+
+        if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
+
+        let stepCount = 0;
+        fadeIntervalRef.current = setInterval(() => {
+            stepCount++;
+
+            // Fade In New
+            if (newAudio.volume + volStep <= targetVolume) {
+                newAudio.volume = Math.min(newAudio.volume + volStep, targetVolume);
+            } else {
+                newAudio.volume = targetVolume;
+            }
+
+            // Fade Out Old
+            if (prevAudio) {
+                if (prevAudio.volume - volStep >= 0) {
+                    prevAudio.volume = Math.max(prevAudio.volume - volStep, 0);
+                } else {
+                    prevAudio.volume = 0;
+                }
+            }
+
+            if (stepCount >= steps) {
+                if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
+                if (prevAudio) {
+                    prevAudio.pause();
+                }
+                newAudio.volume = targetVolume; // Ensure final volume is exact
+            }
+        }, intervalTime);
 
         return () => {
-            // Cleanup on unmount or track change is handled by the next effect run or pause logic
+            if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
         };
     }, [currentMusic, musicEnabled, getEffectiveVolume, playNextRandomMusic]);
 
     // Update volume of currently playing music when volume settings change
     useEffect(() => {
         if (musicAudioRef.current && currentMusic) {
+            // Only update if not currently fading (simple check, could be more robust)
+            // For now, just setting it might override fade, which is acceptable for immediate feedback
             musicAudioRef.current.volume = getEffectiveVolume(currentMusic, true);
         }
     }, [globalVolume, musicEnabled, trackVolumes, currentMusic, getEffectiveVolume]);
@@ -190,6 +264,8 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             isPlaying,
             playMusic,
             pauseMusic,
+            playNextMusic,
+            playPrevMusic,
             playSFX
         }}>
             {children}

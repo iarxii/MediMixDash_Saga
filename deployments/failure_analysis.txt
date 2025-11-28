@@ -1,55 +1,52 @@
 The Netlify deploy errored, with the following guidance provided:
 
-- Relevant log lines
-  - Build treats warnings as errors: [line 76](#L76)
-  - ESLint failure (the actual blocking error): [line 83](#L83) which reports "React Hook useEffect has a missing dependency: 'game.timeFreezeActive'". The failing file is src/Game.tsx (see repo file https://github.com/iarxii/MediMixDash_Saga/blob/main/src/Game.tsx).
-
 Diagnosis
-- The Create React App build is running in CI mode so warnings are treated as errors ([line 76](#L76)). ESLint reports a missing dependency in a useEffect in src/Game.tsx ([line 83](#L83)). That ESLint warning stops the build, causing Netlify to fail.
+- The build failed because ESLint warnings are treated as errors in CI ([line 77](#L77)), and the compiler stopped with ESLint errors in src/context/SoundContext.tsx: an unused variable and a missing hook dependency ([line 84](#L84), [line 85](#L85)).
+- Relevant log lines: [line 77](#L77), [line 80](#L80)–[line 86](#L86).
 
-Cause
-- A useEffect's dependency array is missing the value game.timeFreezeActive. ESLint's react-hooks/exhaustive-deps rule flags this as a problem. In CI (Netlify) this becomes a build error.
+Errors reported by ESLint
+- "Line 119:19: 'targetVol' is assigned a value but never used" (in src/context/SoundContext.tsx) — unused variable causes an ESLint error ([line 84](#L84)).
+- "Line 227:8: React Hook useEffect has a missing dependency: 'isPlaying'." — effect dependency array is incomplete ([line 85](#L85)).
+
+File referenced: src/context/SoundContext.tsx — https://github.com/iarxii/MediMixDash_Saga/blob/main/src/context/SoundContext.tsx
 
 Solution
-1. Fix the useEffect dependency list in src/Game.tsx
-   - Edit src/Game.tsx and locate the useEffect around the reported location. Add game.timeFreezeActive to the dependency array so the effect correctly re-runs when that value changes.
+1) Preferred: Fix the code (recommended)
+  - Remove or use the unused variable targetVol at the source location (line referenced by ESLint). If it was left from a refactor, delete the declaration; otherwise, actually use it.
+    Example: if the file currently has something like
+```typescript
+const targetVol = someCalculation(); // unused — remove or use
+```
+    remove the line, or use targetVol in code so it isn't flagged.
 
-   Example (TypeScript) — replace the existing effect’s dependency array with one that includes game.timeFreezeActive:
-   ```ts
-   useEffect(() => {
-     // existing effect logic
-     if (game.timeFreezeActive) {
-       // ... do something when timeFreezeActive is true
-     }
-   }, [game.timeFreezeActive /*, otherExistingDeps */]);
-   ```
+  - Fix the useEffect dependency error by including isPlaying in the dependency array (or restructure the effect).
+    Example change:
+```typescript
+useEffect(() => {
+  // effect body that depends on isPlaying
+}, [isPlaying /*, other deps used inside the effect */]);
+```
+    If you truly intend the effect to run only once and have considered the consequences, you may explicitly silence the rule for that line (not recommended unless you understand the hook behavior):
+```typescript
+// eslint-disable-next-line react-hooks/exhaustive-deps
+useEffect(() => {
+  // effect body
+}, []);
+```
+    But prefer adding the missing dependency or refactoring the effect (e.g., using refs or splitting effects).
 
-   - If the effect also depends on other variables, include them in the array as well. Prefer listing specific primitives/fields (e.g., game.timeFreezeActive) rather than the whole game object to avoid unnecessary re-runs.
+  - Commit and push the fixes to the repo, then trigger a Netlify deploy again.
 
-2. Alternatives (use with caution)
-   - If you intentionally want the effect to run only once and understand the implications, you can silence the rule for that specific effect (not recommended unless you know why):
-   ```ts
-   // eslint-disable-next-line react-hooks/exhaustive-deps
-   useEffect(() => {
-     // ...
-   }, []);
-   ```
-   - Or refactor the logic so the effect uses a stable ref or callback and preserves correct behavior without disabling lint.
+2) Alternative (not recommended): stop treating warnings as errors on Netlify
+  - Netlify sets CI=true which makes CRA fail on ESLint warnings ([line 77](#L77)). You can change the environment variable CI to false in Netlify Build & Deploy > Environment > Edit variables (set CI = false). This will allow the build to succeed despite ESLint warnings, but it hides real issues — better to fix the code.
 
-3. Rebuild
-   - Commit and push the change. Netlify will re-run the build; the ESLint error should be resolved and the build should succeed.
-
-Optional: change CI behavior (not recommended)
-- You can make Netlify not treat warnings as errors by unsetting CI=true in the build environment (set CI to false in Netlify build environment variables). This only masks the underlying lint warning; fixing the dependency is the correct approach.
-
-Files
-- File to edit: src/Game.tsx — https://github.com/iarxii/MediMixDash_Saga/blob/main/src/Game.tsx
-
-Summary
-- Add game.timeFreezeActive to the useEffect dependency array (or properly refactor), commit, and push. This will fix the ESLint error that is failing the CI build.
+Notes
+- You should edit src/context/SoundContext.tsx at the linked path above and correct the two issues, then rebuild.
+- After fixing, run locally: npm run build (or set CI=true locally when testing to replicate Netlify behavior).
 
 The relevant error logs are:
 
+Line 65: [36m[1m❯ Context[22m[39m
 Line 66:   production
 Line 67: [96m[1m​[22m[39m
 Line 68: [96m[1mBuild command from Netlify app                                [22m[39m
@@ -59,33 +56,34 @@ Line 71: [36m$ npm run build[39m
 Line 72: > Medi-Mix-Dash-Saga@0.1.0 build
 Line 73: > react-scripts build
 Line 74: Creating an optimized production build...
-Line 75: [33m[39m
-Line 76: [33mTreating warnings as errors because process.env.CI = true.[39m
-Line 77: [33mMost CI servers set it automatically.[39m
-Line 78: [33m[39m
-Line 79: [31mFailed to compile.[39m
-Line 80: [31m[39m
-Line 81: [eslint]
-Line 82: src/Game.tsx
-Line 83:   [1mLine 175:6:[22m  React Hook useEffect has a missing dependency: 'game.timeFreezeActive'. Either include it or remove the 
-Line 84: [91m[1m​[22m[39m
-Line 85: [91m[1m"build.command" failed                                        [22m[39m
-Line 86: [91m[1m────────────────────────────────────────────────────────────────[22m[39m
-Line 87: ​
-Line 88:   [31m[1mError message[22m[39m
-Line 89:   Command failed with exit code 1: npm run build
-Line 90: ​
-Line 91:   [31m[1mError location[22m[39m
-Line 92:   In Build command from Netlify app:
-Line 93:   npm run build
-Line 94: ​
-Line 95:   [31m[1mResolved config[22m[39m
-Line 96:   build:
-Line 97:     command: npm run build
-Line 98:     commandOrigin: ui
-Line 99:     publish: /opt/build/repo/build
-Line 100:     publishOrigin: ui
-Line 101: Failed during stage 'building site': Build script returned non-zero exit code: 2
-Line 102: Build failed due to a user error: Build script returned non-zero exit code: 2
-Line 103: Failing build: Failed to build site
-Line 104: Finished processing build request in 28.256s
+Line 75: Failed during stage 'building site': Build script returned non-zero exit code: 2
+Line 76: [33m[39m
+Line 77: [33mTreating warnings as errors because process.env.CI = true.[39m
+Line 78: [33mMost CI servers set it automatically.[39m
+Line 79: [33m[39m
+Line 80: [31mFailed to compile.[39m
+Line 81: [31m[39m
+Line 82: [eslint]
+Line 83: src/context/SoundContext.tsx
+Line 84:   [1mLine 119:19:[22m  'targetVol' is assigned a value but never used                                                         
+Line 85:   [1mLine 227:8:[22m   React Hook useEffect has a missing dependency: 'isPlaying'. Either include it or remove the dependency 
+Line 86: [91m[1m​[22m[39m
+Line 87: [91m[1m"build.command" failed                                        [22m[39m
+Line 88: [91m[1m────────────────────────────────────────────────────────────────[22m[39m
+Line 89: ​
+Line 90:   [31m[1mError message[22m[39m
+Line 91:   Command failed with exit code 1: npm run build
+Line 92: ​
+Line 93:   [31m[1mError location[22m[39m
+Line 94:   In Build command from Netlify app:
+Line 95:   npm run build
+Line 96: ​
+Line 97:   [31m[1mResolved config[22m[39m
+Line 98:   build:
+Line 99:     command: npm run build
+Line 100:     commandOrigin: ui
+Line 101:     publish: /opt/build/repo/build
+Line 102:     publishOrigin: ui
+Line 103: Build failed due to a user error: Build script returned non-zero exit code: 2
+Line 104: Failing build: Failed to build site
+Line 105: Finished processing build request in 25.049s

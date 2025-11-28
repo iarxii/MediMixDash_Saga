@@ -54,6 +54,20 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const musicAudioRef = useRef<HTMLAudioElement | null>(null);
     const fadeIntervalRef = useRef<NodeJS.Timer | null>(null);
 
+    // Helper to get effective volume for a track
+    const getEffectiveVolume = useCallback((trackName: string, isMusic: boolean) => {
+        const trackVol = trackVolumes[trackName] ?? 0.5;
+        const categoryEnabled = isMusic ? musicEnabled : sfxEnabled;
+        if (!categoryEnabled) return 0;
+        return trackVol * globalVolume;
+    }, [globalVolume, musicEnabled, sfxEnabled, trackVolumes]);
+
+    // Ref for getEffectiveVolume to use in effects without dependency cycles
+    const getEffectiveVolumeRef = useRef(getEffectiveVolume);
+    useEffect(() => {
+        getEffectiveVolumeRef.current = getEffectiveVolume;
+    }, [getEffectiveVolume]);
+
     // Persistence
     useEffect(() => {
         localStorage.setItem('sound_globalVolume', globalVolume.toString());
@@ -70,14 +84,6 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     useEffect(() => {
         localStorage.setItem('sound_trackVolumes', JSON.stringify(trackVolumes));
     }, [trackVolumes]);
-
-    // Helper to get effective volume for a track
-    const getEffectiveVolume = useCallback((trackName: string, isMusic: boolean) => {
-        const trackVol = trackVolumes[trackName] ?? 0.5;
-        const categoryEnabled = isMusic ? musicEnabled : sfxEnabled;
-        if (!categoryEnabled) return 0;
-        return trackVol * globalVolume;
-    }, [globalVolume, musicEnabled, sfxEnabled, trackVolumes]);
 
     // Music Logic
     const playNextRandomMusic = useCallback(() => {
@@ -117,15 +123,13 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         } else if (musicAudioRef.current) {
             // Fade in if paused
             const targetVol = getEffectiveVolume(currentMusic, true);
+            musicAudioRef.current.volume = targetVol; // Fix: Use targetVol
             musicAudioRef.current.play()
                 .then(() => setIsPlaying(true))
                 .catch(e => {
                     console.warn("Audio play failed:", e);
                     setIsPlaying(false);
                 });
-
-            // Simple fade in from current volume
-            // Note: complex crossfade is handled in the effect when track changes
         }
     }, [musicEnabled, currentMusic, playNextRandomMusic, getEffectiveVolume]);
 
@@ -150,12 +154,13 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const src = MUSIC_TRACKS[currentMusic];
         if (!src) return;
 
-        const targetVolume = getEffectiveVolume(currentMusic, true);
+        // Use ref to avoid dependency on getEffectiveVolume
+        const targetVolume = getEffectiveVolumeRef.current(currentMusic, true);
 
         // If we already have an audio object for this track, just ensure it's playing
         if (musicAudioRef.current && musicAudioRef.current.src.endsWith(src.split('/').pop()!)) {
             musicAudioRef.current.volume = targetVolume;
-            if (!isPlaying) {
+            if (musicAudioRef.current.paused) { // Fix: Check paused instead of isPlaying
                 musicAudioRef.current.play()
                     .then(() => setIsPlaying(true))
                     .catch(e => {
@@ -224,13 +229,11 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return () => {
             if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
         };
-    }, [currentMusic, musicEnabled, getEffectiveVolume, playNextRandomMusic]);
+    }, [currentMusic, musicEnabled, playNextRandomMusic]); // Removed getEffectiveVolume dependency
 
     // Update volume of currently playing music when volume settings change
     useEffect(() => {
         if (musicAudioRef.current && currentMusic) {
-            // Only update if not currently fading (simple check, could be more robust)
-            // For now, just setting it might override fade, which is acceptable for immediate feedback
             musicAudioRef.current.volume = getEffectiveVolume(currentMusic, true);
         }
     }, [globalVolume, musicEnabled, trackVolumes, currentMusic, getEffectiveVolume]);

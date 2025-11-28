@@ -172,7 +172,7 @@ function Game() {
       dispatch(updateHelpCooldowns());
     }, 1000);
     return () => clearInterval(interval);
-  }, [dispatch, game.currentTime, patients, paused]);
+  }, [dispatch, game.currentTime, game.timeFreezeActive, patients, paused]);
 
   // Check for mood state changes and apply penalties
   useEffect(() => {

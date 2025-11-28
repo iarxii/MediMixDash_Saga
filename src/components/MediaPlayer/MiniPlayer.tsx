@@ -8,7 +8,8 @@ interface MiniPlayerProps {
 const MiniPlayer: React.FC<MiniPlayerProps> = ({ onOpenFull }) => {
     const { isPlaying, playMusic, pauseMusic, currentMusic } = useSound();
 
-    const togglePlay = () => {
+    const togglePlay = (e: React.MouseEvent) => {
+        e.stopPropagation();
         if (isPlaying) {
             pauseMusic();
         } else {
@@ -17,7 +18,11 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onOpenFull }) => {
     };
 
     return (
-        <div className="flex items-center bg-white/80 backdrop-blur-md rounded-full px-3 py-1 shadow-sm border border-pink-200 mr-4">
+        <div
+            onClick={onOpenFull}
+            className="flex items-center bg-white/80 backdrop-blur-md rounded-full px-3 py-1 shadow-sm border border-pink-200 mr-4 cursor-pointer hover:bg-white transition-colors"
+            title="Open Media Player"
+        >
             <button
                 onClick={togglePlay}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-pink-500 text-white hover:bg-pink-600 transition-colors mr-3"
@@ -37,15 +42,11 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ onOpenFull }) => {
                 </div>
             </div>
 
-            <button
-                onClick={onOpenFull}
-                className="text-pink-500 hover:text-pink-700 p-1"
-                title="Open Media Player"
-            >
+            <div className="text-pink-500 p-1">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                 </svg>
-            </button>
+            </div>
         </div>
     );
 };
